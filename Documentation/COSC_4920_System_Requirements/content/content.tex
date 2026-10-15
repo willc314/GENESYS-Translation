@@ -1,0 +1,147 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Purpose }
+
+Our task is to translate C\#/C code from databases in GENESYS and export them to a single repository. We will also be doing the inverse which would be taking an external repository and translating it to appropriate diagrams by representing it as the correct table structure within a GENESYS database. This will help speed up the process of modeling new systems and building logic simulations.
+
+\section{Intended Audience}
+
+The intended audience are engineers using GENESYS to model their projects who want to be able to quickly share model ideas across different formats.  
+
+\section{Intended Use}
+
+An app that can run parallel to GENESYS, connect to external repositories, and bidirectionally translate UML-style logic, activity, and state diagrams to code.
+
+\section{Product Scope}
+
+Be able to compile and de-compile any valid code/state diagram with proper error handling. No features beyond translating code, this will just run as a local executable that can interface with GENESYS and have repositories initialized into its app data for translation.
+
+\section{Risk Definition}
+
+Portability of C across different devices, which can lead to memory corruption and unfaithful translations.  
+
+\chapter{Overall Description}
+\label{Overall Description}
+
+\section{User Classes and Characteristics}
+
+Engineers and project managers use GENESYS.
+
+
+\section{User Needs}
+
+Translate C\#/C code to relational schema in a database using logic which GENESYS is able to display to the user. Be able to take abstract GENESYS logic diagrams and convert them to barebone C\#/C script external to the GENESYS app. Diagrams and database tables in GENESYS are structured by its modeling language, CSDL (see Appendix~\ref{app:glossary}), so translations must produce entities, relationships, and attributes that conform to the GENESYS schema. 
+
+\section{Operating Environment}
+
+Current goal will be a terminal-based .NET application that runs in parallel to GENESYS and properly communicates via GENESYS' API to the database that GENESYS projects run on. There are also options for a possible in-app GUI supported by the in-app C\#/Visual basic scripting features. 
+
+\section{Constraints}
+
+Must run on Windows with the GENESYS app.
+
+\section{Assumptions}
+
+Imported or exported code will be logically valid. Users will be running on Windows 10/11 operating systems.
+
+\newpage
+
+
+
+
+\chapter{Requirements}
+\label{Requirements}
+
+%\section{User Interfaces}
+
+\section{Functional Requirements}
+\subsection{State Diagrams to Activity Diagrams}
+\begin{itemize}
+  \item Tool shall read a state machine from GENESYS, including all states, transitions, triggers, conditions and entry and exit behavior.
+  \item Tool shall create an activity diagram in the repository representing that state machine's behavior.
+  \item Have an option to see all possible states and transitions presented in activity diagram outputs.
+\end{itemize}
+
+\subsection{Activity Diagrams to Code}
+
+\begin{itemize}
+  \item Tool shall read an activity diagram we generate similar to GENESYS' and generate C\# or Visual Basic code while implementing its control flow.
+  \item Each activity node shall become a class. The tool shall generate function prototypes attached to each 'function' class that has been generated from GENESYS.
+  \item Forks, loops and merges shall become that of the corresponding external language 
+  \item Generated code should be compile-able.
+\end{itemize}
+
+
+\subsection{Code to State Diagram}
+
+\begin{itemize}
+  \item Tool shall load a code repository and extract a control flow graph.
+  \item User shall define initial variable conditions and translation shall begin from there and follow calls to a designated depth.
+  \item Output shall cover every branch possible if proper initial conditions are defined.
+  \item Loops and recursive calls shall be represented as a single item in the diagram, not expanded for each occurrence. These will be represented as states that call themselves with different types of transitions.
+  \item Unused variables, methods, or classes shall be reported to the user.
+  \item Tool shall provide names for each generated state extracted from information in the code.
+\end{itemize}
+
+\subsection{Stretch Functional Requirements}
+
+\begin{itemize}
+  \item All functionality should be accessed via GENESYS GUI powered by GENESYS scripting, likely running our main app as a microservice in the background that can be started/controlled from the GENESYS script. 
+  \item After using the tool a status window should show up, displaying where the model and code has changed, and delineating whether an operation successful or not.
+  \item Renames and file moves either in GENESYS or in the code repository should be reconciled appropriately rather than the tool being treated as a deletion and a creation.
+\end{itemize}
+
+
+\section{Non Functional Requirements}
+\subsection{Minimum Viable Product}
+
+\begin{itemize}
+  \item Intuitive for engineers.
+  \item A failure in the tool shall not terminate GENESYS.
+  \item A canceled or failed operation shall not leave any changes in a partially written state.
+  \item The same inputs and configuration shall always produce the same output. 
+  \item The tool shall only run on windows, matching GENESYS. 
+\end{itemize}
+
+
+\subsection{Product Stretch}
+
+\begin{itemize}
+  \item Translation speed optimization.
+  \item The tool should remain responsive on large repositories. 
+  \item The tool should complete its operation within reasonable lengths of time depending on translation size.
+\end{itemize}
+
+ \newpage
+\begin{appendices}
+
+\chapter{Glossary}
+\label{app:glossary}
+
+\begin{description}
+  \item[Activity Diagram] A diagram showing the control flow of a process as actions, decisions, forks, loops, and merges. In GENESYS, forks, loops, and merges are modeled with behavior constructs such as Parallel, Select, and Loop. \href{https://genesys-help.vitechcorp.com/genesys-help/behavior-constructs}{[GENESYS Help: Behavior Constructs]}
+
+  \item[Control Flow Graph] A graph of the possible execution paths through code, with nodes for blocks of code and edges for jumps between them.
+
+  \item[CSDL] The Comprehensive Systems Design Language, the GENESYS modeling language built from entities, relationships, and attributes that read as natural-language phrases. \href{https://genesys-help.vitechcorp.com/genesys-help/language-the-comprehensive-systems-design-language-csdl}{[GENESYS Help: CSDL]}
+
+  \item[Schema] The metadata of a GENESYS project: the classes, attributes, and relations that CSDL defines. Schema names can be aliased, for example showing ``Activity'' in place of ``Function,'' without affecting scripts or data interchange. \href{https://genesys-help.vitechcorp.com/genesys-help/schema-classes}{[GENESYS Help: Schema - Classes]}
+
+  \item[Script] A GENESYS utility program, used for simple queries and operations, stored at the repository level so it is available in every project in that repository. A project must be open to run one. \href{https://genesys-help.vitechcorp.com/genesys-help/scripts}{[GENESYS Help: Scripts]}
+
+  \item[State Diagram] A diagram showing the states of a system and the transitions between them, with their triggers and conditions.
+\end{description}
+
+\chapter{Documentation}
+\label{app:documentation}
+
+\begin{itemize}
+  \item \href{https://www.zuken.com/us/resource/genesys-software-documentation/}{GENESYS software documentation}
+  \item \href{https://genesys-help.vitechcorp.com/genesys-help/developing-genesys-add-ins}{Developing GENESYS add-ins}
+  \item \href{https://genesys-help.vitechcorp.com/genesys-help/language-the-comprehensive-systems-design-language-csdl}{CSDL}
+  \item \href{https://genesys-help.vitechcorp.com/genesys-help/behavior-constructs}{Behavior constructs}
+  \item \href{https://genesys-help.vitechcorp.com/genesys-help/schema-classes}{Schema classes}
+  \item \href{https://genesys-help.vitechcorp.com/genesys-help/scripts}{Scripts}
+\end{itemize}
+\end{appendices}
