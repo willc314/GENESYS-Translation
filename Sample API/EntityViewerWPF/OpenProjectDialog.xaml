@@ -1,0 +1,20 @@
+﻿<Window x:Class="EntityViewerWPF.OpenProjectDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="Open Project" Height="300" Width="300" ResizeMode="NoResize" Opacity="1" 
+    Background="AliceBlue" WindowStartupLocation="CenterScreen">
+    
+    <Grid Margin="5">
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <ListBox x:Name="lstProjects" DisplayMemberPath="Name" SelectionChanged="lstProjects_SelectionChanged" Margin="5" />
+        
+        <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Margin="5">
+            <Button x:Name="btnOK" Height="25" Width="75" Margin="3" IsDefault="True" Click="btnOK_Click" IsEnabled="False" >OK</Button>
+            <Button x:Name="btnCancel" Height="25" Width="75" Margin="3" IsCancel="True" Click="btnCancel_Click" >Cancel</Button>
+        </StackPanel>
+    </Grid>
+</Window>
