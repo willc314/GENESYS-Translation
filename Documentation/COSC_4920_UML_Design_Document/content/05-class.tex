@@ -1,0 +1,108 @@
+\chapter{Class Diagram}
+\label{ch:class}
+
+\section{Purpose}
+
+The class diagram models the static structure of the data the tool operates on:
+the three representations a translation passes through, and the entity types
+that make up a GENESYS project.
+
+\umlfigure{class-diagram}{Class diagram}{fig:class}
+
+\section{Representations}
+
+A translation is a chain of three representations, each of which knows how to
+translate to the next. Reading left to right gives the import direction; reading
+right to left gives the export direction.
+
+\begin{longtable}{L{0.24\textwidth}L{0.68\textwidth}}
+	\caption{Translation representations}\label{tab:representations}\\
+	\toprule
+	\textbf{Class} & \textbf{Responsibility} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Class} & \textbf{Responsibility} \\
+	\midrule
+	\endhead
+
+	\texttt{C\#} & The source-code representation. Holds the program as written,
+	and translates to and from the abstract syntax. \\
+	\addlinespace
+
+	\texttt{Absyn} & The abstract syntax, and the pivot of the design. It belongs
+	to neither the language nor the model, so neither end depends on the other
+	directly, and a second language becomes a second translation into the same
+	abstract syntax rather than a change to anything downstream. \\
+	\addlinespace
+
+	\texttt{Genesys Project} & The model representation. Aggregates the entity
+	collections \texttt{functions[]}, \texttt{items[]} and \texttt{state[]}, and
+	translates to and from the abstract syntax. \\
+	\bottomrule
+\end{longtable}
+
+Each class exposes a \texttt{translate()} operation. Translation is therefore a
+responsibility of the representation rather than of a separate converter, and
+the chain is traversed by calling \texttt{translate()} along it.
+
+\section{Project Entities}
+
+A GENESYS project is made up of entities. The three the tool reads and writes
+share a common shape: each carries its relationships to other entities and the
+targets and attributes attached to those relationships, which is how the GENESYS
+schema itself is organised.
+
+\begin{longtable}{L{0.18\textwidth}L{0.30\textwidth}L{0.44\textwidth}}
+	\caption{Project entity types}\label{tab:entities}\\
+	\toprule
+	\textbf{Class} & \textbf{Attributes} & \textbf{Role} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Class} & \textbf{Attributes} & \textbf{Role} \\
+	\midrule
+	\endhead
+
+	\texttt{Function} & \texttt{relationships[]}, \texttt{targetsAndAttributes[]},
+	\texttt{parameters[]}
+	& A behaviour in the model. Carries parameters in addition to the common
+	shape, because a function's inputs and outputs become a generated method's
+	signature. \\
+	\addlinespace
+
+	\texttt{Item} & \texttt{relationships[]}, \texttt{targetsAndAttributes[]}
+	& What flows between functions. \\
+	\addlinespace
+
+	\texttt{State} & \texttt{relationships[]}, \texttt{targetsAndAttributes[]}
+	& A state in a state machine. Transitions are reached through
+	\texttt{relationships[]} rather than being a class of their own. \\
+	\bottomrule
+\end{longtable}
+
+\section{Design Decisions}
+
+\paragraph{An abstract syntax as the pivot.}
+Placing \texttt{Absyn} between the language and the model means neither end
+references the other. This is the structural counterpart of the process boundary
+in Figure~\ref{fig:block}, where the extraction half and the model half exchange
+a neutral representation rather than object references.
+
+\paragraph{Translation belongs to the representation.}
+Each representation implements \texttt{translate()} rather than translation
+being owned by an external converter. Adding a representation therefore means
+adding a class that can translate into the abstract syntax, with no change to
+the existing ones.
+
+\paragraph{Entities mirror the GENESYS schema.}
+\texttt{Function}, \texttt{Item} and \texttt{State} carry relationships and
+targets with attributes because that is how GENESYS stores them. Keeping the
+same shape means reading and writing the repository is a direct mapping rather
+than a reinterpretation, and that a schema addition does not require a new
+class.
+
+\paragraph{Parameters only on Function.}
+\texttt{Function} is the only entity carrying \texttt{parameters[]}, since it is
+the only one that becomes a method signature. \texttt{Item} and \texttt{State}
+reach everything they need through relationships.

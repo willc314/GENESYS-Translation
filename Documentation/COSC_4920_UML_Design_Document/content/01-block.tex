@@ -1,0 +1,97 @@
+\chapter{Block Diagram}
+\label{ch:block}
+
+\section{Purpose}
+
+The block diagram shows the components of the system, the boundary that
+separates them, and what flows across it. It records the two decisions that
+constrain everything else in this document: the split between code running
+inside GENESYS and code running in a separate process, and the confinement of
+vendor assemblies to a single component.
+
+\umlfigure{block-diagram}{System block diagram}{fig:block}
+
+\section{Elements}
+
+The diagram is divided into two groups. \emph{In GENESYS} holds the components
+that run inside the host application. \emph{.NET Process} holds those that run
+separately. The GENESYS Model and the Code Repository sit outside both, because
+the tool reads and writes them but does not implement either.
+
+\begin{longtable}{L{0.22\textwidth}L{0.70\textwidth}}
+	\caption{Block diagram elements}\label{tab:block-elements}\\
+	\toprule
+	\textbf{Component} & \textbf{Responsibility} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Component} & \textbf{Responsibility} \\
+	\midrule
+	\endhead
+
+	Repository Client & Connects to GENESYS, reads the project schema, and creates
+	or updates entities. The only component that references the vendor client
+	assemblies. \\
+	\addlinespace
+
+	Model Mapper & Translates between the intermediate representation and GENESYS
+	entities, including states, transitions and behavioural constructs. Sends and
+	receives that representation across the process boundary. \\
+	\addlinespace
+
+	Code Extractor & Loads a solution, resolves symbols through the compiler's
+	semantic model, and produces control flow graphs. Reads from the Code
+	Repository. \\
+	\addlinespace
+
+	Abstraction & Applies significance rules in both directions, discarding
+	constructs that do not belong at the level a systems engineer reads. Sits
+	between the extractor and the mapper, and between the mapper and the
+	generator. \\
+	\addlinespace
+
+	Code Generator & Emits source implementing a model's control flow, and writes
+	it to the Code Repository. \\
+	\addlinespace
+
+	GENESYS Model & External. The repository holding the system model. \\
+	\addlinespace
+
+	Code Repository & External. Holds the source files the tool reads and writes. \\
+	\bottomrule
+\end{longtable}
+
+\section{Data Flow}
+
+Two paths run through the diagram in opposite directions. Code to model begins
+at the Code Repository, passes through the Code Extractor and the Abstraction
+component, crosses the process boundary into the Model Mapper, and reaches the
+GENESYS Model through the Repository Client. Model to code reverses that route,
+leaving through the Code Generator.
+
+The Abstraction component is the junction of both paths, which is why it sits
+between the extractor and the generator rather than inside either.
+
+\section{Design Decisions}
+
+\paragraph{Process boundary.}
+The vendor client assemblies target .NET Framework 4.x, while the compiler
+platform used for extraction targets a current .NET runtime. Loading both into
+one process risks assembly version conflicts, and a fault in the parser would
+otherwise terminate the host application. This separation cannot be retrofitted
+later without redesign.
+
+\paragraph{Confinement of vendor assemblies.}
+Only the Repository Client references the vendor libraries. Every other
+component builds and runs with no licence and no GENESYS installation, which
+matters for a team with a limited number of licence activations.
+
+\paragraph{A single abstraction component serving both directions.}
+Rather than filtering separately on each path, one component holds the
+significance rules. The rules are therefore stated once and applied
+consistently, whichever direction the translation runs.
+
+\paragraph{External systems marked explicitly.}
+The GENESYS Model and the Code Repository are drawn outside the process groups
+to make clear that neither is built by this project, and that the tool performs
+no version control operations of its own.

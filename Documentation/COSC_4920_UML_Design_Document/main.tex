@@ -1,0 +1,122 @@
+%=============================================================================
+%  UML Design Document
+%  COSC 4920 Senior Design  --  Team Pentateuch
+%
+%  Build:  pdflatex main.tex   (twice, for the contents)
+%     or:  latexmk -pdf main.tex
+%
+%  No flags needed. Diagrams are read from the converted PDFs in images/.
+%  See the SVG HANDLING block below if you want to compile the SVGs directly.
+%=============================================================================
+\documentclass[11pt,letterpaper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\IfFileExists{lmodern.sty}{\usepackage{lmodern}}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+%-----------------------------------------------------------------------------
+%  SVG HANDLING -- one switch, read this before you build
+%
+%  FALSE (default): the converted PDFs in images/ are used. Fast, needs no
+%                   flags, and is what Overleaf's free plan can finish inside
+%                   its compile limit. Re-run tools/svg2pdf.sh after editing
+%                   any diagram so the PDF matches the SVG.
+%
+%  TRUE:            SVGs in images/ are compiled directly by Inkscape. Needs
+%                   -shell-escape, and converting seven large diagrams will
+%                   usually exceed the free plan's compile timeout. Use it
+%                   only on a paid plan or locally.
+%-----------------------------------------------------------------------------
+\newif\ifusesvg
+\usesvgfalse     % <-- set to \usesvgtrue to compile the SVGs directly instead
+
+\newif\ifsvgready
+\ifusesvg
+\IfFileExists{svg.sty}{\usepackage{svg}\svgpath{{images/}}\svgreadytrue}{\svgreadyfalse}
+\else
+\svgreadyfalse
+\fi
+
+\graphicspath{{images/}}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Requirement identifier, so traceability references are consistent and searchable
+\newcommand{\req}[1]{\texttt{#1}}
+
+%-----------------------------------------------------------------------------
+% \umlfigure{basename}{caption}{label}
+%
+% Pass the file name WITHOUT an extension. Resolution order:
+%   images/<name>.pdf   preferred: fast, no shell-escape needed
+%   images/<name>.png
+%   images/<name>.svg   via the svg package (needs Inkscape + -shell-escape)
+%   placeholder         so the document always compiles
+%-----------------------------------------------------------------------------
+\newcommand{\umlplaceholder}[1]{%
+	\fbox{\parbox[c][0.30\textheight][c]{0.92\textwidth}{\centering
+			\textcolor{gray}{\large Diagram placeholder}\\[0.6em]
+			\textcolor{gray}{\texttt{images/#1.svg}}\\[0.6em]
+			\textcolor{gray}{\small Export the diagram to \texttt{images/} to replace this.}}}%
+}
+
+\newcommand{\umlfigure}[3]{%
+	\begin{figure}[htbp]
+		\centering
+		\IfFileExists{images/#1.pdf}{%
+			\includegraphics[width=\textwidth,height=0.80\textheight,keepaspectratio]{#1.pdf}%
+		}{\IfFileExists{images/#1.png}{%
+				\includegraphics[width=\textwidth,height=0.80\textheight,keepaspectratio]{#1.png}%
+			}{\IfFileExists{images/#1.svg}{%
+					\ifsvgready\includesvg[width=\textwidth,height=0.80\textheight,keepaspectratio]{#1}\else\umlplaceholder{#1}\fi
+				}{%
+					\umlplaceholder{#1}%
+				}}}
+		\caption{#2}
+		\label{#3}
+	\end{figure}%
+}
+
+%-----------------------------------------------------------------------------
+\title{\vspace{-1cm}\Large UML Design Document\\[0.3em]
+	\normalsize for\\[0.3em]
+	\Large GENESYS Translation Tool}
+\author{Team Pentateuch\\[0.6em]
+	William Chen \quad Luca Hergan \quad Sean Healy\\[1em]
+	Marquette University\\[0.5em]
+	Farzeen Harunani}
+\date{October 19, 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\tableofcontents
+\listoffigures
+\newpage
+
+\setcounter{page}{1}
+
+\input{content/00-introduction}
+\input{content/01-block}
+\input{content/02-usecase}
+\input{content/03-activity}
+\input{content/04-sequence}
+\input{content/05-class}
+\input{content/06-state}
+\input{content/07-traceability}
+
+\appendix
+\input{content/08-glossary}
+
+\end{document}

@@ -1,0 +1,58 @@
+\chapter{Use Case Diagram}
+\label{ch:usecase}
+
+\section{Purpose}
+
+The use case diagram shows what the actor can ask the system to do. It models
+interaction at the level of user intent, without reference to the components
+that satisfy it.
+
+\umlfigure{use-case-diagram}{Use case diagram}{fig:usecase}
+
+\section{Actors}
+
+\begin{longtable}{L{0.20\textwidth}L{0.72\textwidth}}
+	\caption{Actors}\label{tab:actors}\\
+	\toprule
+	\textbf{Actor} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Actor} & \textbf{Description} \\
+	\midrule
+	\endhead
+	Engineer & The primary and only actor. Works in GENESYS, invokes both
+	translations, and reviews their results. The actor is deliberately singular
+	because the same person performs both directions. \\
+	\bottomrule
+\end{longtable}
+
+\section{Use Cases}
+
+\begin{longtable}{L{0.26\textwidth}L{0.66\textwidth}}
+	\caption{Use cases}\label{tab:usecases}\\
+	\toprule
+	\textbf{Use case} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Use case} & \textbf{Description} \\
+	\midrule
+	\endhead
+
+	Import Model from Code & The engineer selects source code and the tool
+	produces the corresponding model in GENESYS. Realised by the Code Extractor,
+	Abstraction and Model Mapper components of Figure~\ref{fig:block}. \\
+	\addlinespace
+
+	Export Model to Code & The engineer selects a model and the tool produces
+	source code implementing it. Realised by the Model Mapper, Abstraction and Code
+	Generator components of Figure~\ref{fig:block}. \\
+	\bottomrule
+\end{longtable}
+
+\section{System Boundary}
+
+Both use cases sit inside the \emph{Genesys Translation Tool} boundary. GENESYS
+itself and the code repository are outside it, consistent with
+Figure~\ref{fig:block}, where both are drawn as external systems.
