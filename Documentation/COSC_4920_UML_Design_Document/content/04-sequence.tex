@@ -1,0 +1,66 @@
+\chapter{Sequence Diagram}
+\label{ch:sequence}
+
+\section{Purpose}
+
+The sequence diagram models interaction between the participants over time,
+showing the order in which messages pass between the engineer, the tool and
+GENESYS for both translation directions.
+
+\umlfigure{sequence-diagram}{Sequence diagram for both translation directions}{fig:sequence}
+
+\section{Participants}
+
+\begin{longtable}{L{0.20\textwidth}L{0.72\textwidth}}
+	\caption{Sequence participants}\label{tab:sequence-participants}\\
+	\toprule
+	\textbf{Lifeline} & \textbf{Role} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Lifeline} & \textbf{Role} \\
+	\midrule
+	\endhead
+	User & The engineer. Initiates each translation and receives its result. \\
+	\addlinespace
+	Pentateuch & The translation tool. Performs extraction, abstraction, mapping
+	and generation. Drawn as one lifeline because the internal division of
+	responsibility is the subject of Figure~\ref{fig:block} rather than of this
+	diagram. \\
+	\addlinespace
+	Genesys & The host application and its repository. Receives and supplies
+	models. \\
+	\bottomrule
+\end{longtable}
+
+\section{Message Sequence}
+
+\begin{longtable}{L{0.06\textwidth}L{0.24\textwidth}L{0.24\textwidth}L{0.34\textwidth}}
+	\caption{Messages}\label{tab:sequence-messages}\\
+	\toprule
+	\textbf{\#} & \textbf{From} & \textbf{To} & \textbf{Message} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{\#} & \textbf{From} & \textbf{To} & \textbf{Message} \\
+	\midrule
+	\endhead
+	1 & User       & Pentateuch & Upload Code \\
+	2 & Pentateuch & Genesys    & Import Model \\
+	3 & Genesys    & Pentateuch & Export Model \\
+	4 & Pentateuch & User       & Export Code \\
+	\bottomrule
+\end{longtable}
+
+Messages 1 and 2 form the code-to-model direction: the engineer supplies source,
+and the tool places the resulting model into GENESYS. Messages 3 and 4 form the
+model-to-code direction: GENESYS supplies the model, and the tool returns
+generated source.
+
+\section{Design Decisions}
+
+\paragraph{One lifeline for the tool.}
+The tool is represented by a single lifeline rather than by its internal
+components. This keeps the diagram at the level of interaction between the
+engineer and the two systems, and leaves internal structure to
+Figure~\ref{fig:block}.

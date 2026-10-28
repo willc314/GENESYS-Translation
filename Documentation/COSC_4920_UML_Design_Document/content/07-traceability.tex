@@ -1,0 +1,218 @@
+\chapter{Requirements Traceability}
+\label{ch:traceability}
+
+\section{Purpose}
+
+This chapter demonstrates that the design follows from the requirements rather
+than from implementation convenience. Each requirement from the System
+Requirements Specification is listed with the diagram or diagrams that realise
+it, and those not yet realised are identified so that the gaps are visible.
+
+\section{Traceability Matrix}
+
+\begin{longtable}{L{0.07\textwidth}L{0.52\textwidth}L{0.33\textwidth}}
+	\caption{Requirements to diagrams}\label{tab:traceability}\\
+	\toprule
+	\textbf{ID} & \textbf{Requirement} & \textbf{Realised in} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{ID} & \textbf{Requirement} & \textbf{Realised in} \\
+	\midrule
+	\endhead
+
+	\multicolumn{3}{l}{\textit{3.1.1 State Diagrams to Activity Diagrams}} \\
+	\addlinespace
+	\req{SA-1} & Read a state machine from GENESYS, including all states,
+	transitions, triggers, conditions and entry and exit behaviour.
+	& Figure~\ref{fig:sa-activity} \\
+	\addlinespace
+	\req{SA-2} & Create an activity diagram in the repository representing that
+	state machine's behaviour.
+	& Figures~\ref{fig:sa-activity}, \ref{fig:class} \\
+	\addlinespace
+	\req{SA-3} & Offer an option to show all possible states and transitions in
+	activity diagram outputs.
+	& Figure~\ref{fig:sa-activity} \\
+	\addlinespace
+
+	\multicolumn{3}{l}{\textit{3.1.2 Activity Diagrams to Code}} \\
+	\addlinespace
+	\req{AC-1} & Read an activity diagram and generate C\# or Visual Basic code
+	implementing its control flow.
+	& Figures~\ref{fig:export-activity}, \ref{fig:usecase}, \ref{fig:class} \\
+	\addlinespace
+	\req{AC-2} & Each activity node becomes a class, with function prototypes
+	attached to each generated function class.
+	& Figures~\ref{fig:export-activity}, \ref{fig:class} \\
+	\addlinespace
+	\req{AC-3} & Forks, loops and merges become the corresponding constructs of
+	the target language.
+	& Figure~\ref{fig:export-activity} \\
+	\addlinespace
+	\req{AC-4} & Generated code shall be compilable.
+	& Figure~\ref{fig:export-activity} \\
+	\addlinespace
+
+	\multicolumn{3}{l}{\textit{3.1.3 Code to State Diagram}} \\
+	\addlinespace
+	\req{CS-1} & Load a code repository and extract a control flow graph.
+	& Figures~\ref{fig:import-activity}, \ref{fig:block}, \ref{fig:class} \\
+	\addlinespace
+	\req{CS-2} & The user defines initial variable conditions, and translation
+	begins there and follows calls to a designated depth.
+	& Figure~\ref{fig:import-activity} \\
+	\addlinespace
+	\req{CS-3} & Output covers every possible branch when initial conditions are
+	properly defined.
+	& Figure~\ref{fig:import-activity} \\
+	\addlinespace
+	\req{CS-4} & Loops and recursive calls are represented as a single item,
+	as states that call themselves with differing transitions, rather than
+	expanded per occurrence.
+	& Figure~\ref{fig:import-activity} \\
+	\addlinespace
+	\req{CS-5} & Unused variables, methods and classes are reported to the user.
+	& Figure~\ref{fig:import-activity} \\
+	\addlinespace
+	\req{CS-6} & The tool derives a name for each generated state from
+	information in the code.
+	& Figure~\ref{fig:import-activity} \\
+	\addlinespace
+
+	\multicolumn{3}{l}{\textit{3.1.4 Stretch Functional Requirements}} \\
+	\addlinespace
+	\req{FS-1} & All functionality accessible from the GENESYS interface via
+	scripting, with the application running as a background service.
+	& Figures~\ref{fig:block}, \ref{fig:state}, \ref{fig:sequence} \\
+	\addlinespace
+	\req{FS-2} & A status window after use, showing where the model and the code
+	have changed and whether the operation succeeded.
+	& Figure~\ref{fig:state} \\
+	\addlinespace
+	\req{FS-3} & Renames and file moves reconciled rather than treated as a
+	deletion and a creation.
+	& Figure~\ref{fig:import-activity}, stretch \\
+	\addlinespace
+
+	\multicolumn{3}{l}{\textit{3.2.1 Non-Functional, minimum viable product}} \\
+	\addlinespace
+	\req{NFR-1} & Intuitive for engineers.
+	& Figures~\ref{fig:usecase}, \ref{fig:state} \\
+	\addlinespace
+	\req{NFR-2} & A failure in the tool shall not terminate GENESYS.
+	& Figure~\ref{fig:block} \\
+	\addlinespace
+	\req{NFR-3} & A cancelled or failed operation shall leave no changes
+	partially written.
+	& Figures~\ref{fig:state}, \ref{fig:import-activity} \\
+	\addlinespace
+	\req{NFR-4} & The same inputs and configuration shall always produce the same
+	output.
+	& Not visible in any diagram \\
+	\addlinespace
+	\req{NFR-5} & Windows only, matching GENESYS.
+	& Not a diagram concern \\
+	\addlinespace
+
+	\multicolumn{3}{l}{\textit{3.2.2 Non-Functional, stretch}} \\
+	\addlinespace
+	\req{NFS-1} & Translation speed optimisation.
+	& Not a diagram concern \\
+	\addlinespace
+	\req{NFS-2} & Remain responsive on large repositories.
+	& Not a diagram concern \\
+	\addlinespace
+	\req{NFS-3} & Complete operations within a reasonable time for the
+	translation size.
+	& Not a diagram concern \\
+	\bottomrule
+\end{longtable}
+
+\section{How Each Diagram Realises Its Requirements}
+
+\paragraph{Block diagram, Figure~\ref{fig:block}.}
+The separation between the \emph{In GENESYS} group and the \emph{.NET Process}
+group is what satisfies \req{NFR-2}: a fault in the analysis process cannot
+terminate the host, because they are different processes. The same separation is
+what makes \req{FS-1} reachable without redesign, since an interface placed
+inside GENESYS drives an application that already runs separately. The Code
+Repository and Code Extractor realise the loading half of \req{CS-1}.
+
+\paragraph{Use case diagram, Figure~\ref{fig:usecase}.}
+\emph{Export Model to Code} and \emph{Import Model from Code} correspond to
+\req{AC-1} and \req{CS-1} respectively. A single Engineer actor, rather than
+separate roles per direction, reflects \req{NFR-1}: the same person performs both
+translations through one interface.
+
+\paragraph{State to activity diagram, Figure~\ref{fig:sa-activity}.}
+The parallel reads satisfy \req{SA-1}, covering states with their entry and exit
+behaviours alongside transitions with their triggers and conditions. The loop
+body realises \req{SA-2}, with \emph{Create Decision Node per Guard} being the
+step that turns a transition condition into a branch. \emph{Mark State as
+Reached} and \emph{Append Unreached States and Transitions} together realise
+\req{SA-3}, the second being possible only because the first records what the
+traversal covered.
+
+\paragraph{Import activity diagram, Figure~\ref{fig:import-activity}.}
+\emph{Select User Configurations} and \emph{Enqueue Called Methods within Depth
+Limit} together realise \req{CS-2}. \emph{Build Control Flow Graph} realises the
+extraction half of \req{CS-1}, and \emph{Walk Control Flow Graph} with
+\emph{Reducible to Constructs?} realises \req{CS-3}. The bounded queue satisfies
+\req{CS-4}, since a method already processed is not enqueued again, so recursion
+produces one item rather than an expansion. The \emph{Review and Write} node
+satisfies \req{NFR-3}, because no path reaches a write without passing through
+it. \emph{Derive State Names from Code} realises \req{CS-6}, and \emph{Report
+Unused Variables, Methods and Classes} realises \req{CS-5}, placed after the
+queue drains because reachability determines what counts as unused.
+\emph{Reconcile Renames and Moves} covers \req{FS-3} and is drawn dashed, since
+it is a stretch requirement.
+
+\paragraph{Export activity diagram, Figure~\ref{fig:export-activity}.}
+\emph{Get Functions} through \emph{Build Method} realise \req{AC-1} and
+\req{AC-2}, with \emph{Relate to Owning Class} being the step that places each
+generated prototype on its function class. \emph{Build Input/Output} produces the
+prototypes themselves. The forked branches of \emph{Build Method} correspond to
+the construct mapping required by \req{AC-3}.
+
+\paragraph{Sequence diagram, Figure~\ref{fig:sequence}.}
+The three lifelines show the application as a participant distinct from GENESYS,
+which is the interaction \req{FS-1} would route through a script rather than
+through the user directly.
+
+\paragraph{Class diagram, Figure~\ref{fig:class}.}
+\texttt{Function} carrying \texttt{parameters[]} is what makes \req{AC-2}
+implementable, since a generated class needs its prototypes' signatures.
+\texttt{Absyn} as the pivot between \texttt{C\#} and \texttt{Genesys Project}
+is what allows both \req{AC-1} and \req{CS-1} to be served by one chain rather
+than two independent translators.
+
+\paragraph{State diagram, Figure~\ref{fig:state}.}
+\emph{Showing Report}, reached from success, denial and failure alike, realises
+\req{FS-2}. \emph{Awaiting Review} preceding \emph{Writing} realises
+\req{NFR-3}, since the only route to a write is through acceptance.
+
+\section{Requirements Not Yet Realised}
+
+\begin{longtable}{L{0.10\textwidth}L{0.82\textwidth}}
+	\caption{Gaps against the requirements}\label{tab:omissions}\\
+	\toprule
+	\textbf{ID} & \textbf{Why it is absent, and what is needed} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{ID} & \textbf{Why it is absent, and what is needed} \\
+	\midrule
+	\endhead
+
+	\req{NFR-4} & That the same inputs always produce the same output is a
+	property of the implementation rather than of the structure, so no diagram
+	shows it. \\
+	\addlinespace
+
+	\req{NFR-5}, \req{NFS-1}, \req{NFS-2}, \req{NFS-3} & Platform and performance
+	requirements are properties of the delivered system rather than of its
+	structure or behaviour, and are addressed in the requirements specification
+	rather than here. \\
+	\bottomrule
+\end{longtable}

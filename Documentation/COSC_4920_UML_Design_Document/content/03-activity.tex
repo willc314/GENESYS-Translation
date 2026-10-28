@@ -1,0 +1,309 @@
+\chapter{Activity Diagrams}
+\label{ch:activity}
+
+\section{Purpose}
+
+The activity diagrams model the work performed during a translation, from the
+engineer's request through analysis to the point at which changes are written.
+
+Where Chapter~\ref{ch:state} shows the states the tool rests in, these diagrams
+show what happens between them. The two directions have their own diagrams
+because they differ in shape, though both are organised around the same idea: a
+queue of units to process, drained one at a time until empty.
+
+\section{State Machine to Activity Diagram}
+\label{sec:sa-activity}
+
+This translation stays entirely within GENESYS: it reads a state machine from the
+repository and produces an activity representing the same behaviour. No source
+code is involved on either side, which is why neither of the code translations
+covers it.
+
+\umlfigure{state-to-activity}{State Machine to Activity activity diagram}{fig:sa-activity}
+
+\subsection{Flow}
+
+\begin{longtable}{L{0.30\textwidth}L{0.62\textwidth}}
+	\caption{State to activity nodes}\label{tab:sa-nodes}\\
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endhead
+
+	Connect to GENESYS & Establishes repository access, decomposed into the three
+	steps that follow. The same sequence opens the export translation. \\
+	\addlinespace
+	Create Client, Log In, Open Project & The connection steps, drawn separately
+	because each can fail independently. \\
+	\addlinespace
+	Select State Machine & The engineer chooses which machine to convert. \\
+	\addlinespace
+	Read States and Entry/Exit Behaviours & One half of \req{SA-1}. Retrieves the
+	states together with the behaviours attached on entry and exit. \\
+	\addlinespace
+	Read Transitions, Triggers and Conditions & The other half of \req{SA-1}.
+	Drawn in parallel with the states read, because neither depends on the
+	other. \\
+	\addlinespace
+	Add States to Conversion Queue & Seeds the work queue. \\
+	\addlinespace
+	State Queue Empty? & The terminating condition. \\
+	\addlinespace
+	Take Next State from Queue & Removes the next state awaiting conversion. \\
+	\addlinespace
+	Create Action Node from Entry/Exit Behaviour & Produces the activity node
+	corresponding to what the state does. \\
+	\addlinespace
+	Guarded Transitions? & Branches when a state's outgoing transitions carry
+	guard conditions. \\
+	\addlinespace
+	Create Decision Node per Guard & Produces a decision node with one outgoing
+	edge per guard, which is how a condition on a transition becomes a branch in an
+	activity. \\
+	\addlinespace
+	Create Control Flow to Target States & Produces the edges joining this state's
+	node to the nodes of the states it transitions to. \\
+	\addlinespace
+	Mark State as Reached & Records that the state appeared in the output, which
+	is what makes \req{SA-3} answerable. \\
+	\addlinespace
+	Show All States and Transitions? & The option required by \req{SA-3}. \\
+	\addlinespace
+	Append Unreached States and Transitions & Adds the states and transitions that
+	the traversal never arrived at, so the output covers the whole machine rather
+	than only its reachable part. \\
+	\addlinespace
+	Review and Write & The shared sequence of
+	Section~\ref{sec:shared-tail}. \\
+	\bottomrule
+\end{longtable}
+
+\subsection{Design Decisions}
+
+\paragraph{The two reads are parallel.}
+States with their behaviours and transitions with their triggers and conditions
+are independent retrievals, so they are drawn as a fork rather than a sequence.
+Ordering them would assert a dependency the design does not have.
+
+\paragraph{Guards become decision nodes, not separate states.}
+A guard is a condition on a transition in a state machine, and a branch in an
+activity. Creating one decision node per guarded state, rather than one per
+transition, keeps the output at the abstraction a reader expects.
+
+\paragraph{Reachability is tracked during the walk.}
+\emph{Mark State as Reached} exists so that \emph{Append Unreached States and
+Transitions} has something to work from. Without it, \req{SA-3} would require a
+second traversal to discover what the first one missed.
+
+\paragraph{The option is applied after the walk.}
+\req{SA-3} is evaluated once the queue is empty rather than per state, so the
+main loop is identical whichever way the option is set and only the final
+appending step differs.
+
+\section{Import Model from Code}
+\label{sec:import-activity}
+
+This direction reads source code and produces a GENESYS model. Work is organised
+as a queue of methods, seeded with the entry point the engineer selects and
+extended as the walk discovers calls.
+
+\umlfigure{import-activity}{Import Model from Code activity diagram}{fig:import-activity}
+
+\subsection{Flow}
+
+\begin{longtable}{L{0.30\textwidth}L{0.62\textwidth}}
+	\caption{Import activity nodes}\label{tab:import-nodes}\\
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endhead
+
+	Select User Configurations & The engineer chooses the solution, the entry
+	point and the depth to which calls are followed. \\
+	\addlinespace
+	Load Solution and Resolve Symbols & The solution is opened and symbols are
+	resolved through the compiler's semantic model, so that a call is matched to
+	the method it actually invokes rather than to a name. \\
+	\addlinespace
+	Symbols Resolved? & A quality gate. Branches when references cannot be
+	resolved, typically from a project that does not build. \\
+	\addlinespace
+	Record Unresolved Symbols & Notes what could not be resolved and rejoins the
+	main flow, so extraction continues with a partial but honestly labelled
+	result. \\
+	\addlinespace
+	Seed Queue with Entry Point & Places the selected method into the work
+	queue. \\
+	\addlinespace
+	Take Next Method from Queue & Removes the next method awaiting processing. The
+	loop control point. \\
+	\addlinespace
+	Queue Empty? & The terminating condition. When no methods remain, control
+	passes to the review and write sequence. \\
+	\addlinespace
+	Build Control Flow Graph & Produces the basic blocks and edges for one
+	method. \\
+	\addlinespace
+	Reducible to Constructs? & A quality gate. Branches when control flow cannot
+	be expressed as nested constructs, which early returns and breaks from nested
+	loops can cause. \\
+	\addlinespace
+	Flag Method as Unstructurable & Records the method and the construct
+	responsible, then returns to the queue, so one awkward method does not stop the
+	run. \\
+	\addlinespace
+	Walk Control Flow Graph & Traverses the graph, dispatching on the structure of
+	each branch and loop. \\
+	\addlinespace
+	Apply Abstraction Rules & Discards constructs below the significance
+	threshold, which is what keeps the resulting diagram readable. \\
+	\addlinespace
+	Derive State Names from Code & Produces a name for each state from the
+	identifiers and structure of the code it came from, as \req{CS-6} requires. It
+	precedes entity creation because an entity cannot be created without its
+	name. \\
+	\addlinespace
+	Map to GENESYS Entities & Produces the entities and relationships
+	corresponding to what survived the abstraction. \\
+	\addlinespace
+	Enqueue Called Methods within Depth Limit & Extends the queue with methods the
+	walk discovered, bounded by the depth the engineer selected, then returns to
+	the queue. \\
+	\addlinespace
+	Report Unused Variables, Methods and Classes & Reports code the walk never
+	reached, as \req{CS-5} requires. It sits after the queue drains because what is
+	unused can only be known once everything reachable has been processed. \\
+	\addlinespace
+	Reconcile Renames and Moves & Matches code symbols to the model entities they
+	produced on an earlier run rather than treating a rename as a deletion and a
+	creation. Drawn dashed because \req{FS-3} is a stretch requirement. \\
+	\addlinespace
+	Review and Write & The shared sequence described in
+	Section~\ref{sec:shared-tail}. \\
+	\bottomrule
+\end{longtable}
+
+\subsection{Design Decisions}
+
+\paragraph{A bounded queue rather than recursion.}
+Following calls through a queue with an explicit depth limit keeps the traversal
+finite, handles recursive and mutually recursive calls without special cases,
+and means a method called from several places is processed once. That last
+property is what satisfies \req{CS-4}, since recursion yields one queue item
+rather than an expansion per occurrence.
+
+\paragraph{Both quality gates continue rather than abort.}
+Unresolved symbols and unstructurable methods are recorded and the run proceeds.
+A partial result that states what it could not read is more useful than a failure,
+and more honest than a result that silently omits it.
+
+\paragraph{Abstraction after the walk, not during it.}
+The walk produces a complete picture of the control flow, and the rules are
+applied to that. Filtering during traversal would make the discarded material
+unavailable for the counts reported at the end.
+
+\section{Export Model to Code}
+\label{sec:export-activity}
+
+This direction reads a GENESYS model and produces source code. It opens with the
+connection sequence, since the model lives in the repository rather than on
+disk, then drains a queue of functions.
+
+\umlfigure{export-activity}{Export Model to Code activity diagram}{fig:export-activity}
+
+\subsection{Flow}
+
+\begin{longtable}{L{0.30\textwidth}L{0.62\textwidth}}
+	\caption{Export activity nodes}\label{tab:export-nodes}\\
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Node} & \textbf{Description} \\
+	\midrule
+	\endhead
+
+	Connect to GENESYS & Establishes access to the repository. Decomposed into the
+	three steps that follow. \\
+	\addlinespace
+	Create Client & Instantiates the repository client, the only component
+	referencing the vendor assemblies. \\
+	\addlinespace
+	Log In & Authenticates against the repository. \\
+	\addlinespace
+	Open Project & Selects the project whose model is to be translated. \\
+	\addlinespace
+	Get Functions & Retrieves the function entities from the opened project. \\
+	\addlinespace
+	Read Name, Number, Description & Reads each function's identifying attributes,
+	including the description that becomes a documentation comment in the generated
+	source. \\
+	\addlinespace
+	Add to Generation Queue & Places the functions into the work queue. \\
+	\addlinespace
+	Generate Code & The entry point to generation proper. \\
+	\addlinespace
+	Function Queue Empty & The terminating condition. \\
+	\addlinespace
+	Build Method & Emits the class for one function, with its function prototypes
+	attached, as \req{AC-2} requires. Forks into three independent steps. \\
+	\addlinespace
+	Build Input/Output & Derives the prototype signatures from the function's
+	inputs and outputs. \\
+	\addlinespace
+	Relate to Owning Class & Attaches the generated prototypes to the function
+	class they belong to. \\
+	\addlinespace
+	Add Function Description & Emits the function's description as a documentation
+	comment, carrying the intent recorded in the model into the source. \\
+	\addlinespace
+	Verify Generated Code Compiles & Checks the generated source against the
+	target compiler, which is what makes \req{AC-4} a step in the flow rather than
+	an unverified property of the output. \\
+	\addlinespace
+	Update in Repository & Writes the result. \\
+	\bottomrule
+\end{longtable}
+
+\subsection{Design Decisions}
+
+\paragraph{The connection sequence is explicit.}
+Create client, log in and open project appear as distinct actions rather than
+being folded into a single connect step, because each can fail independently and
+because the client is the component that carries the vendor dependency.
+
+\paragraph{Identifying attributes are read up front.}
+Name, number and description are read when functions are retrieved rather than
+when each method is built, so the queue holds everything generation needs and no
+further repository round trip is required per function.
+
+\paragraph{Method building forks rather than sequences.}
+Inputs and outputs, owning class and description are drawn as parallel branches
+because none depends on the others. Drawing them in sequence would assert an
+ordering the design does not require.
+
+\paragraph{Abstraction after the walk serves branch coverage.}
+Applying the rules to a completed graph rather than during traversal is what
+allows \req{CS-3} to be checked, since every branch is present before anything
+is discarded.
+
+\section{Shared Review and Write Sequence}
+\label{sec:shared-tail}
+
+Both directions end by presenting the proposed change set, waiting for the
+engineer to accept or deny, writing accepted changes, and reporting the outcome.
+This corresponds to the Awaiting Review, Writing and Showing Report states of
+Figure~\ref{fig:state}.
+
+Figure~\ref{fig:import-activity} represents this as a single \emph{Review and
+Write} node, a call behaviour action invoking a separately defined activity,
+rather than repeating the sequence in both diagrams.

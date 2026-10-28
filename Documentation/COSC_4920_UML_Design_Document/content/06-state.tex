@@ -1,0 +1,99 @@
+\chapter{State Diagram}
+\label{ch:state}
+
+\section{Purpose}
+
+The state diagram models the lifecycle of a tool session: the states the tool
+occupies, the events that move it between them, and the point at which the user
+decides whether anything is written.
+
+It models the tool's own session, not the behaviour the tool translates. The
+behavioural models the tool produces are the subject of
+Chapter~\ref{ch:activity}.
+
+\umlfigure{state-diagram}{State diagram for a tool session}{fig:state}
+
+\section{States}
+
+\begin{longtable}{L{0.26\textwidth}L{0.66\textwidth}}
+	\caption{Session states}\label{tab:states}\\
+	\toprule
+	\textbf{State} & \textbf{Description} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{State} & \textbf{Description} \\
+	\midrule
+	\endhead
+
+	Idle & The initial state. The tool is not running and GENESYS is in normal
+	use. \\
+	\addlinespace
+	Waiting for User Configuration & The dialog is open and the engineer is
+	choosing a translation direction and its parameters. The tool waits
+	indefinitely. \\
+	\addlinespace
+	Collecting Input & The tool gathers the material the translation needs,
+	reading the selected source files or the selected model. \\
+	\addlinespace
+	Analyzing & Extraction, abstraction and mapping run. This is the only state
+	with two outcomes. \\
+	\addlinespace
+	Awaiting Review & The proposed change set is displayed and the tool waits for
+	the engineer. Nothing has been written at this point. \\
+	\addlinespace
+	Writing & The accepted changes are applied, either to the GENESYS model or to
+	the code repository. \\
+	\addlinespace
+	Showing Report & Results or errors are displayed. Reached from a successful
+	write, from a denied review, and from a failed analysis. \\
+	\bottomrule
+\end{longtable}
+
+\section{Transitions}
+
+\begin{longtable}{L{0.26\textwidth}L{0.26\textwidth}L{0.38\textwidth}}
+	\caption{Session transitions}\label{tab:transitions}\\
+	\toprule
+	\textbf{From} & \textbf{To} & \textbf{Trigger} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{From} & \textbf{To} & \textbf{Trigger} \\
+	\midrule
+	\endhead
+	Initial & Idle & --- \\
+	Idle & Waiting for User Configuration & Click on Toolbar \\
+	Waiting for User Configuration & Collecting Input & Run \\
+	Collecting Input & Analyzing & Done \\
+	Analyzing & Awaiting Review & Success \\
+	Analyzing & Showing Report & Error \\
+	Awaiting Review & Writing & User Accepts \\
+	Awaiting Review & Showing Report & User Denies \\
+	Writing & Showing Report & Done \\
+	Showing Report & Idle & Close \\
+	\bottomrule
+\end{longtable}
+
+\section{Design Decisions}
+
+\paragraph{Two states are actually waits.}
+Waiting for User Configuration and Awaiting Review are states rather than steps,
+because the tool stops indefinitely in each until the engineer acts. Every other
+state could be interpretted as an action and is transient and leaves of its own accord.
+
+\paragraph{Nothing is written before review.}
+Writing is reachable only through Awaiting Review and only on acceptance. Every
+other path to Showing Report leaves the model and the repository untouched, so
+the guarantee that a cancelled or failed session writes nothing is a property of
+the diagram's shape rather than a note attached to it.
+
+\paragraph{One reporting state for three outcomes.}
+Success, denial and failure all converge on Showing Report. This keeps the
+diagram compact, and means the engineer always returns to Idle by the same
+route.
+
+\paragraph{The decision node after review.}
+Accept and deny are drawn through an explicit decision node rather than as two
+transitions leaving the state directly, which makes the branch visible at a
+glance.
