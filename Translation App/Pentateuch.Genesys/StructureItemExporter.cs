@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Vitech.Genesys.Client;
 
-namespace GenesysStructureTraversalSample
+namespace Pentateuch.Genesys
 {
     /// <summary>
     /// Implements the IStructureItemVisitor interface to facilitate operating on each concrete structure item
@@ -76,6 +76,7 @@ namespace GenesysStructureTraversalSample
         {
             OutputIndent(construct);
             Console.Write(string.Format("REPLICATE: Domain Set = {0}", construct.GetDomainSet().Name));
+            Console.WriteLine();
         }
 
         public void VisitSelect(ISelectConstruct construct)

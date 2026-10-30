@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- The GENESYS API only runs on .NET Framework 4.8 -->
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Where GENESYS is installed -->
+    <GenesysDir Condition="'$(GenesysDir)' == ''">C:\Program Files\Vitech\GENESYS 2026 University Edition</GenesysDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pentateuch.Absyn\Pentateuch.Absyn.csproj" />
+  </ItemGroup>
+
+  <!-- GENESYS API assemblies -->
+  <ItemGroup>
+    <Reference Include="Vitech.Genesys" HintPath="$(GenesysDir)\Vitech.Genesys.dll" />
+    <Reference Include="Vitech.Genesys.Client" HintPath="$(GenesysDir)\Vitech.Genesys.Client.dll" />
+    <Reference Include="Vitech.Genesys.Client.Utilities" HintPath="$(GenesysDir)\Vitech.Genesys.Client.Utilities.dll" />
+    <Reference Include="Vitech.Genesys.Common" HintPath="$(GenesysDir)\Vitech.Genesys.Common.dll" />
+    <Reference Include="Vitech.Genesys.License" HintPath="$(GenesysDir)\Vitech.Genesys.License.dll" />
+    <Reference Include="Vitech.Genesys.License.Provider" HintPath="$(GenesysDir)\Vitech.Genesys.License.Provider.dll" />
+    <Reference Include="Vitech.Genesys.Logging" HintPath="$(GenesysDir)\Vitech.Genesys.Logging.dll" />
+    <Reference Include="Vitech.Genesys.Random" HintPath="$(GenesysDir)\Vitech.Genesys.Random.dll" />
+  </ItemGroup>
+
+  <!-- Licensing DLLs are copied next to the .exe, not referenced -->
+  <ItemGroup>
+    <None Include="$(GenesysDir)\hasp_*.dll;$(GenesysDir)\apidsp_*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

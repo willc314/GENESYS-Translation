@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Vitech.Genesys.Client;
 using Vitech.Genesys.Common;
 
-namespace GenesysStructureTraversalSample
+namespace Pentateuch.Genesys
 {
     class Program
     {
@@ -43,11 +43,11 @@ namespace GenesysStructureTraversalSample
                     return;
                 }
 
-                // TODO: Replace the string below with the name of the target project.
-                var projectName = "SAMPLE: Fast Food";
+                // TODO: Replace the string below with the name of the target project (or pass it as the first argument).
+                var projectName = args.Length > 0 ? args[0] : "SAMPLE: Fast Food";
 
-                // TODO: Replace the string below with the name of the target entity.
-                var entityName = "Operate FF Restaurant";
+                // TODO: Replace the string below with the name of the target entity (or pass it as the second argument).
+                var entityName = args.Length > 1 ? args[1] : "Operate FF Restaurant";
 
                 // TODO: Replace the ID below with the ID of the class of entity referenced above.
                 // Note that only subclasses of ProcessingUnit have a structure.
