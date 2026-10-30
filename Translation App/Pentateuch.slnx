@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Pentateuch.Absyn/Pentateuch.Absyn.csproj" />
+  <Project Path="Pentateuch.Genesys/Pentateuch.Genesys.csproj" />
+  <Project Path="Pentateuch.Translator/Pentateuch.Translator.csproj" />
+</Solution>
