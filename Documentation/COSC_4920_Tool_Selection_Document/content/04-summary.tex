@@ -1,0 +1,71 @@
+\chapter{Summary and Open Items}
+\label{ch:summary}
+
+\section{Decisions at a Glance}
+
+\begin{longtable}{L{0.24\textwidth}L{0.13\textwidth}L{0.55\textwidth}}
+	\caption{Tool decisions}\label{tab:summary}\\
+	\toprule
+	\textbf{Tool} & \textbf{Verdict} & \textbf{Deciding reason} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Tool} & \textbf{Verdict} & \textbf{Deciding reason} \\
+	\midrule
+	\endhead
+
+	GENESYS Client API & \adopted & The only documented, supported, programmatic
+	route into the repository available to the team. \\
+	\addlinespace
+	Roslyn & \adopted & Semantic resolution and control flow graphs, which nothing
+	else provides for C\#. Covers both translation directions. \\
+	\addlinespace
+	.NET Framework 4.8 & \adopted & Forced by the Client API assemblies. \\
+	\addlinespace
+	.NET 10 & \adopted & Allows a current Roslyn in the half that does not touch
+	GENESYS. \\
+	\addlinespace
+	.NET Standard 2.0 & \adopted & The only target both runtimes can reference, so
+	the only way to share the intermediate representation. \\
+	\addlinespace
+	Git and GitHub & \adopted & Version control, review and task tracking. Also
+	supplies version control functions the tool would otherwise have to resolve. \\
+	\addlinespace
+	\LaTeX{} and draw.io & \adopted & Documentation and diagrams, both diffable in
+	version control. \\
+	\addlinespace
+	OneNote & \adopted & Working notes, kept outside the repository so that
+	provisional material is not mistaken for settled documentation. \\
+	\addlinespace
+	GENESYS REST API & \rejected & Requires administrative access the team does not
+	have. Would otherwise have been preferred. \\
+	\addlinespace
+	Excel Connector & \rejected & Flattens relationships, cannot be automated
+	without driving a user interface. Retained as a reference. \\
+	\addlinespace
+	Direct database access & \rejected & Undocumented schema, bypasses validation,
+	unstable across versions. Useful only as reconnaissance. \\
+	\addlinespace
+	GNSX/GNUX files & \rejected & University Edition format is incompatible with
+	the client's. Not a live connection. \\
+	\addlinespace
+	Direct database access & \rejected & Also prevents GENESYS from starting while
+	connected. \\
+	\bottomrule
+\end{longtable}
+
+\section{The Shape of the Outcome}
+
+The four rejections divide evenly between two kinds of reason with two about access, and two about suitability:\\
+
+The REST API requires administrative configuration the team
+cannot perform, and the commercial interchange format is unavailable from a
+University Edition licence. Neither is a judgement about the interface, and a
+team with full access would reasonably have built something simpler, most likely
+a single modern .NET program talking over HTTP with no runtime split at all.\\
+
+The two about suitability would hold regardless of licensing. The Excel
+Connector flattens relationships into rows and columns, and relationships are the
+substance of what the translation carries. Direct database access targets an
+undocumented store, bypasses the validation that keeps a model consistent, and
+prevents the application from starting while a connection is open.\\

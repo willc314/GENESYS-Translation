@@ -1,0 +1,137 @@
+\chapter{Runtime and Framework Strategy}
+\label{ch:runtime}
+
+This chapter comes before the individual tools because the runtime constraint
+shapes every decision that follows. The two interfaces the tool depends on most,
+the GENESYS Client API and Roslyn, want incompatible hosts, and the architecture
+is largely a response to that.
+
+\section{The Constraint}
+
+The GENESYS Client API assemblies target .NET Framework 4.8. Any code calling
+them must run on that framework, and on a machine with a licensed GENESYS
+installation present.
+
+Roslyn is available for .NET Framework as well. The core analysis packages,
+\code{Microsoft.CodeAnalysis.CSharp} and \code{Microsoft.CodeAnalysis.Common},
+ship a \texttt{netstandard2.0} target alongside their modern .NET targets, and
+\texttt{netstandard2.0} is loadable from .NET Framework 4.6.1 and above. On
+targeting alone, both could sit in the same project.
+
+So the split is not forced by targeting, and it is worth separating two different
+reasons for it, because they apply to two different configurations.
+
+\paragraph{For the committed deliverable, the split is a capability decision.}
+The tool runs as its own program rather than inside GENESYS, so nothing prevents
+Roslyn being referenced from the .NET Framework half. What a modern runtime buys
+is the capability that matters most to the analysis:
+\code{Microsoft.CodeAnalysis.Workspaces.MSBuild} allows a whole solution to be
+opened and resolved rather than individual files, and it behaves far better on a
+current .NET runtime than on .NET Framework, where MSBuild assembly resolution is
+a known source of difficulty. A current Roslyn also understands recent C\# syntax
+while still analysing older code correctly, and carries several years of
+performance work.
+
+\paragraph{For the stretch configuration, the split becomes mandatory.}
+The requirements list running the tool from the GENESYS interface as a stretch
+goal. GENESYS loads its own copy of Roslyn into its process in order to compile
+the C\# and Visual Basic scripts it supports, and two versions of the same
+assembly cannot coexist in one process. Code running inside GENESYS would
+therefore be bound to the version GENESYS ships, which is several years old, or
+would break the host's scripting. A fault in the analysis code would also
+terminate GENESYS, which the requirements forbid.
+
+
+\section{The Decision}
+
+The tool is built as two programs in one solution, each on the runtime that suits
+it, with a shared contract library between them.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Projects and their target frameworks}\label{tab:frameworks}
+	\begin{tabular}{L{0.26\textwidth}L{0.18\textwidth}L{0.46\textwidth}}
+\toprule
+	\textbf{Project} & \textbf{Target} & \textbf{Reason} \\
+	\midrule
+\code{Pentateuch.Genesys} & .NET Framework 4.8 & Must match the Client API
+	assemblies. Holds the repository client and the model mapping. \\
+	\addlinespace
+	\code{Pentateuch.Translator} & .NET 10 & Free to use a current Roslyn, since
+	it never shares a process with GENESYS. Holds extraction and generation. \\
+	\addlinespace
+	\code{Pentateuch.Absyn} & .NET Standard 2.0 & Referenced by both. Holds the
+	shared model classes that represent a translation in progress. \\
+	\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{Why .NET Standard 2.0}
+
+.NET Standard is a specification of the API surface a library may use, rather
+than a runtime. A library compiled against it can be referenced from any runtime
+that implements it, which makes it the only way to share compiled code between
+.NET Framework and modern .NET.
+
+Version 2.0 specifically, because it is the highest version .NET Framework
+supports. .NET Standard 2.1 was never implemented by .NET Framework and never
+will be, so targeting it would exclude the GENESYS-facing half entirely. Version
+2.0 is therefore not a preference but the only option that spans both sides.
+
+What this buys the project is a single definition of the abstract syntax.
+\code{Pentateuch.Absyn} holds the model classes that represent a translation in
+progress, compiled once and referenced by both programs, so the two halves cannot
+drift apart in their understanding of the data. Without it, each side would need
+its own copy of the same type definitions, kept in step by hand.
+
+The cost is that the shared library is restricted to the .NET Standard 2.0 API
+surface, which excludes language and library features added since. In practice
+this is a mild restriction for what the library contains, since it holds data
+types and no behaviour.
+
+\section{Communication Between the Two Programs}
+
+Because the two programs do not share a process, they cannot pass object
+references and must exchange serialised data. \code{Pentateuch.Absyn} defines
+what that data is; the mechanism for moving it is a separate decision and has not
+yet been made.
+
+At the time of writing the two programs run independently, each exercising its
+own interface. \code{Pentateuch.Genesys} connects to a repository and prints a
+function's behaviour diagram, and \code{Pentateuch.Translator} generates classes
+from a \code{schema.json} file and writes the result to disk. Neither yet calls
+the other, so the file-based exchange visible in the translator's test is a test
+fixture rather than the chosen transport.
+
+Three candidates remain open: serialised messages over standard input and output,
+files written to an agreed location, and named pipes. Standard streams are the
+simplest to implement and debug and impose no cleanup burden; files survive the
+run and are easy to inspect after the fact; named pipes avoid the filesystem
+entirely but add lifetime management. The decision should be recorded here once
+made, since it is the one remaining architectural choice in
+Table~\ref{tab:frameworks}.
+
+\section{Consequences}
+
+Three things follow from this arrangement, and they are worth stating because
+they are frequently mistaken for accidents of implementation.
+
+\paragraph{Most of the tool builds without a GENESYS licence.}
+\code{Pentateuch.Translator} and \code{Pentateuch.Absyn} have no dependency on
+the vendor assemblies, so they compile and run on any machine with the .NET 10
+SDK. Only \code{Pentateuch.Genesys} needs an installation.
+
+The vendor assemblies are referenced from each developer's own installation
+rather than committed to the repository, since they are licensed. A
+\texttt{GenesysDir} environment variable overrides the default install path for
+anyone who installed elsewhere.
+
+\paragraph{The analysis half can use a current Roslyn.}
+Solution-level loading, current language support and several years of performance
+work are all available, none of which would be if the analysis ran inside
+GENESYS.
+
+\paragraph{The split is not reversible later.}
+Merging the two halves would reintroduce the assembly conflict, so the boundary
+has to exist from the first commit rather than being added when a conflict
+appears.

@@ -1,0 +1,66 @@
+%=============================================================================
+%  Tool Selection Document
+%  GENESYS Translation Tool
+%  COSC 4920 Senior Design  --  Team Pentateuch
+%
+%  Build:  pdflatex main.tex   (twice, for the contents)
+%     or:  latexmk -pdf main.tex
+%=============================================================================
+\documentclass[11pt,letterpaper]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\IfFileExists{lmodern.sty}{\usepackage{lmodern}}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+% Dotted identifiers. Rendered in typewriter and allowed to break after a dot,
+% which plain \texttt is not, so long namespaces do not overrun the margin.
+\DeclareUrlCommand\code{\urlstyle{tt}}
+
+% A little slack for the paragraph breaker on lines dense with identifiers
+\setlength{\emergencystretch}{2em}
+
+% Verdict marks used in the summary table
+% Requirement identifier, matching the scheme in the UML Design Document
+\newcommand{\req}[1]{\texttt{#1}}
+
+\newcommand{\adopted}{\textbf{Adopted}}
+\newcommand{\rejected}{Not adopted}
+\newcommand{\deferred}{Deferred}
+
+\title{\vspace{-1cm}\Large Tool Selection Document\\[0.3em]
+	\normalsize for\\[0.3em]
+	\Large GENESYS Translation Tool}
+\author{Team Pentateuch\\[0.6em]
+	William Chen \quad Luca Hergan \quad Sean Healy\\[1em]
+	Marquette University\\[0.5em]
+	COSC 4920 Principles of Design}
+\date{October 19, 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\tableofcontents
+\newpage
+
+\setcounter{page}{1}
+
+\input{content/00-introduction}
+\input{content/01-runtime}
+\input{content/02-adopted}
+\input{content/03-rejected}
+\input{content/04-integration}
+\input{content/04-summary}
+
+\end{document}
