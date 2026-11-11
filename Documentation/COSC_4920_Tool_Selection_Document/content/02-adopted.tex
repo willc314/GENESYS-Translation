@@ -1,0 +1,250 @@
+\chapter{Tools Adopted}
+\label{ch:adopted}
+
+\section{GENESYS Client API}
+\label{sec:genesys-api}
+
+\subsection{What it does}
+
+GENESYS is the model-based systems engineering package in which the client's
+model lives. Its Client API is a set of .NET assemblies, namely
+\code{Vitech.Genesys.Client} and \code{Vitech.Genesys.Common}, that let an
+ordinary .NET program read and write the same repository the application works
+on. The vendor's documentation describes it as giving external developers access
+to the same interfaces the GENESYS application itself uses.
+
+Through it a program can authenticate against a repository, open a project, read
+the project schema at run time, and create, read, update and delete entities and
+the relationships between them.
+
+\subsection{Why it is useful}
+
+It removes every intermediate step. Functions, flows, states and transitions can
+be created from code and read back without exporting a file, parsing an
+interchange format, or driving the user interface. The tool can turn C\# into
+model content and model content into C\# while treating the repository as a
+live object graph rather than as a document.
+
+It also reads the schema rather than assuming it. Entity classes and attributes
+are defined per project in GENESYS, so a tool that hard-codes class names breaks
+on a customised schema. Reading the schema at run time avoids that.
+
+Three specific uses in this project:
+
+\begin{itemize}[nosep]
+	\item Reading a state machine with its states, transitions, triggers and
+	      guard conditions, which is the input to the state-to-activity translation.
+	\item Reading function entities with their parameters and relationships,
+	      which is the input to code generation.
+	\item Creating the entities and relationships that an extracted control flow
+	      graph maps onto, which is the output of code analysis.
+\end{itemize}
+
+Worked examples ship with the product, under \texttt{Samples\textbackslash API
+Samples} in the installation directory. One of them,
+\texttt{StructureTraversalSample}, walks a function's behaviour diagram using a
+visitor over the construct types, which is directly the traversal the generation
+half of this tool performs. It is the basis of the current
+\code{Pentateuch.Genesys} test.
+
+Documentation is the \emph{API Getting Started Guide} published by the vendor,
+together with the full reference supplied as a compiled help file with the
+GENESYS documentation package. The reference is the authoritative source for
+whether a given operation exists, since the guide covers only the common
+cases.
+
+\subsection{Why it works for this project}
+
+It is the only interface that is documented, supported, programmatic, and
+complete. Every alternative in Chapter~\ref{ch:rejected} fails at least one of
+those.
+
+Two conditions come with it. The assemblies target .NET Framework 4.8, so the
+code that calls them must too, which is the constraint Chapter~\ref{ch:runtime}
+is a response to. And a licensed local installation must be present and running,
+along with the Sentinel licensing components, which has implications for
+handover.
+
+\subsection{The REST API, and why it is not available}
+
+GENESYS also exposes a REST API, added in the 2021 R2 release, which complements
+the Client API. It is addressed over HTTP with token authentication, and third
+party products integrate with GENESYS through it.
+
+It is not available to this project. Enabling it requires server-side
+configuration through the GENESYS administrative tools that the team does not
+have rights to perform, and the client confirmed that access would not be
+provided. 
+
+This is worth mentioning due to the advantages it would've otherwise had.
+It is transport-based rather than assembly-based, so it imposes no framework
+constraint, and the whole tool could then have been a single modern .NET program
+with no split and no shared contract library. The architecture in
+Chapter~\ref{ch:runtime} exists in large part because this option is closed.
+
+The practical effect is that the Client API is not one option among several. It
+is the only programmatic route into the repository that the team can use.
+
+\section{Roslyn}
+\label{sec:roslyn}
+
+\subsection{What it does}
+
+Roslyn is the .NET compiler platform, and it exposes the compiler's inner workings
+as an API. It parses source into a syntax tree that preserves every detail
+including comments and whitespace, and it produces a semantic model that resolves
+what the code actually means: which method a call resolves to, what type a
+variable holds, and what paths control flow can take through a method.
+
+It also works in the other direction. It can construct and edit syntax trees,
+format the result, and compile it to check for errors. Visual Studio's own
+navigation, refactoring and code suggestions are built on it, which is a
+reasonable indication of its completeness and reliability.
+
+\subsection{Why it is useful}
+
+It covers roughly half the translation by itself, and both directions of it.
+
+For model to code, the generation half can hand Roslyn a structure and have it
+emit correctly formed, correctly formatted source, rather than assembling text
+and hoping it parses. The compile check then answers whether the generated code
+builds, which is a requirement in its own right.
+
+For code to model, the semantic model is what makes the analysis possible at all.
+A syntax tree alone would show that a call to \texttt{Process} exists; the
+semantic model says which \texttt{Process}, in which type, in which assembly.
+That resolution is what lets a call become a relationship between two entities
+rather than a string. Roslyn also produces control flow graphs directly, which is
+the structure the extracted activity is built from.
+
+For keeping the two in step, the editing capability matters. Because Roslyn works
+on a resolved view of a solution rather than on text, it can recognise that a
+symbol was renamed rather than deleted and recreated, which is what a push and
+pull reconciliation needs.
+
+\subsection{Why it works for this project, and its caveats}
+
+It is the right tool, and there is no serious alternative for analysing C\# with
+semantic resolution. Four caveats attach to it.
+
+\paragraph{Language coverage.}
+Roslyn covers C\# and Visual Basic, which are the languages GENESYS supports for
+its own scripting. If the project needs to translate C as well, Roslyn does not cover it 
+and a second analysis front end would be required.
+
+\paragraph{The in-process version conflict.}
+GENESYS loads its own Roslyn to compile scripts. A tool running inside the
+GENESYS process would be bound to that version, which is several years old, or
+would break the host's scripting. This is the reason for the architecture in
+Chapter~\ref{ch:runtime} rather than a reason against Roslyn itself.
+
+\paragraph{The benefit of a current version.}
+Running Roslyn outside GENESYS allows a current release, which can open whole
+solutions rather than individual files, is substantially faster, and understands
+recent C\# syntax while still analysing older code correctly. None of this would
+be available in process.
+
+\paragraph{Project resolution.}
+Because Roslyn is a compiler rather than a parser, it wants a project that
+resolves. Missing references or a solution that does not build produce error
+types rather than resolved symbols, and the analysis degrades quietly unless
+those are detected and reported.
+
+\subsection{Packages used}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Roslyn packages}\label{tab:roslyn-packages}
+	\begin{tabular}{L{0.34\textwidth}L{0.58\textwidth}}
+\toprule
+	\textbf{Package} & \textbf{Purpose} \\
+	\midrule
+\code{Microsoft.CodeAnalysis.CSharp} & Syntax trees, the
+	semantic model and control flow analysis for C\#. The core of both translation
+	directions. \\
+	\addlinespace
+	\code{Microsoft.CodeAnalysis.CSharp.Workspaces} & Project
+	and document abstractions above a single file, including the editing and
+	formatting services used when generating code. \\
+	\addlinespace
+	\code{Microsoft.CodeAnalysis.Workspaces.MSBuild} & Opens a
+	solution or project file and resolves its references, which is what allows
+	analysis across a whole codebase rather than file by file. This package is the
+	main reason the analysis half targets a modern runtime. \\
+	\bottomrule
+	\end{tabular}
+\end{table}
+
+Versions should be pinned rather than floating, since Roslyn's behaviour changes
+between releases and an analysis result that differs between developers would be
+difficult to diagnose.
+
+\section{Version Control and Project Management}
+
+\subsection{Git and GitHub}
+
+Git is used for version control and GitHub for hosting, issue tracking.
+
+Three aspects are worth recording because they affect the design rather than 
+the workflow. The code repository the tool reads and writes to is expected to be
+under Git, which gives the users version control for the code without explicitly 
+implementing it. The tool performs no version control operations itself, which 
+keeps authentication, merge conflicts and branch management outside its scope. 
+And reading from a commit rather than the working directory gives a stable snapshot 
+rather than half-saved files.
+
+\subsection{Branch protection}
+
+A repository ruleset protects \texttt{main}. Direct pushes to it are blocked, so
+every change arrives through a pull request, and a pull request requires an
+approving review before it can merge.
+
+\subsection{Task tracking}
+
+GitHub Projects holds the backlog. Work is tracked there rather than in the issue
+list alone, so that status is visible across the workstreams without
+reading every issue.
+
+\section{Documentation and Diagramming}
+
+\subsection{\LaTeX}
+
+Project documentation is written in \LaTeX, compiled on Overleaf. It gives
+consistent formatting across documents, a structure that three people can edit in
+parallel without merge conflicts, and cross-referencing that stays correct as
+sections move.
+
+\subsection{draw.io}
+
+Diagrams are drawn in draw.io. It stores diagrams as XML, which means they diff
+and merge in version control rather than being opaque binaries, and it exports to
+SVG and PDF for inclusion in the documents. The editable sources are kept in the
+repository beside the exported figures.
+
+\subsection{OneNote}
+
+Working notes are kept in OneNote: meeting notes with the client, findings while
+investigating the GENESYS interfaces, and the rough material that later becomes a
+section of one of these documents.
+
+\section{Supporting Development Tools}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Supporting tools}\label{tab:supporting}
+	\begin{tabular}{L{0.24\textwidth}L{0.68\textwidth}}
+\toprule
+	\textbf{Tool} & \textbf{Use} \\
+	\midrule
+Visual Studio 2026 & Primary development environment, with the .NET desktop
+	development workload, which supplies both .NET Framework 4.8 and the .NET 10
+	SDK. Required in practice for the .NET Framework half, where command line
+	tooling resolves framework references less reliably. \\
+	\addlinespace
+	.NET SDK & Command line build and run across all three projects. \\
+	\addlinespace
+	NuGet & Package management, principally for the Roslyn packages, which restore
+	automatically on first build. \\
+	\bottomrule
+	\end{tabular}
+\end{table}

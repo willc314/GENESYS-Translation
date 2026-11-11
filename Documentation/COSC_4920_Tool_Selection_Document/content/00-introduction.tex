@@ -1,0 +1,44 @@
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Purpose}
+
+This document records the tools considered for the GENESYS Translation Tool,
+which were adopted, which were not, and the reasoning in each case. It is written
+so that a reader who was not present for the evaluation can understand why the
+toolchain looks the way it does, and so that a later maintainer can tell which
+constraints are fixed and which were judgement calls.
+
+Each tool is described under three headings: what it does, why it is useful, and
+whether it works for this project. Rejected tools are documented at the same
+length as adopted ones, because the reason a reasonable option was turned down is
+more informative than the reason an obvious one was taken.
+
+\section{Evaluation Criteria}
+
+Tools were judged against five criteria, in this order of priority.
+
+\begin{enumerate}[nosep]
+	\item \textbf{Access.} Whether the team can obtain and use it, given a
+	      University Edition licence and no access to the vendor's source.
+	\item \textbf{Fidelity.} Whether it exposes the structure the translation
+	      needs, particularly relationships between entities, rather than flattened
+	      values.
+	\item \textbf{Automatability.} Whether it can be driven programmatically
+	      rather than through a user interface.
+	\item \textbf{Stability.} Whether it is a supported interface that will
+	      survive a version change, rather than an implementation detail.
+	\item \textbf{Cost to the schedule.} Whether the effort to adopt it is
+	      proportionate to a two-semester project with three people.
+\end{enumerate}
+
+Criterion 1 eliminated more candidates than the other four combined, and it is
+why several otherwise reasonable options appear in Chapter~\ref{ch:rejected}.
+
+\section{Scope}
+
+This document covers the tools that affect the design of the deliverable: the
+interfaces the tool talks to, the libraries it is built from, and the runtimes it
+targets. Supporting tools the team uses to produce the work are covered in less
+detail, since those choices are reversible. It does not cover GENESYS itself,
+which is a given rather than a choice, nor the client's development environment.

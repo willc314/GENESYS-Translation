@@ -1,0 +1,197 @@
+\chapter{Integration with the Design}
+\label{ch:integration}
+
+The preceding chapters justify each tool on its own merits. This chapter shows
+that the set of them fits the design already agreed, by mapping every component
+of that design to the tool that implements it, and every requirement to the tools
+that serve it.
+
+References to diagrams are to the UML Design Document, and requirement
+identifiers follow the scheme used there: \req{SA} for state machine to activity
+diagram, \req{AC} for activity diagram to code, \req{CS} for code to state
+diagram, \req{FS} for stretch functional requirements, and \req{NFR} for
+non-functional requirements of the minimum viable product.
+
+\section{Components to Tools}
+
+Each component of the block diagram is implemented by a named tool in a named
+project. Nothing in the design is left without an implementer, and no tool
+appears that the design does not call for.
+
+\begin{longtable}{L{0.21\textwidth}L{0.24\textwidth}L{0.45\textwidth}}
+	\caption{Block diagram components and what implements them}\label{tab:components}\\
+	\toprule
+	\textbf{Component} & \textbf{Tool} & \textbf{Project and notes} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Component} & \textbf{Tool} & \textbf{Project and notes} \\
+	\midrule
+	\endhead
+
+	Repository Client & GENESYS Client API & \code{Pentateuch.Genesys}. The only
+	component that references the vendor assemblies, which is what the block
+	diagram asserts and what makes the licence constraint local rather than
+	global. \\
+	\addlinespace
+
+	Model Mapper & None beyond the language & \code{Pentateuch.Genesys}. Converts
+	between Client API entity types and the shared model. Deliberately no library:
+	the mapping is specific to this schema and a general-purpose mapper would
+	obscure it. \\
+	\addlinespace
+
+	Code Extractor & Roslyn & \code{Pentateuch.Translator}. Uses
+	\code{Microsoft.CodeAnalysis.Workspaces.MSBuild} to open a solution and
+	\code{Microsoft.CodeAnalysis.CSharp} for the semantic model and control flow
+	analysis. \\
+	\addlinespace
+
+	Abstraction & None beyond the language & \code{Pentateuch.Translator}.
+	Operates on the shared model rather than on either end's types, which is what
+	allows one component to serve both directions as the block diagram shows. \\
+	\addlinespace
+
+	Code Generator & Roslyn & \code{Pentateuch.Translator}. Builds syntax trees
+	and formats them through
+	\code{Microsoft.CodeAnalysis.CSharp.Workspaces}. \\
+	\addlinespace
+
+	GENESYS Model & GENESYS & External. Not built by this project. \\
+	\addlinespace
+
+	Code Repository & Git & External. The tool reads and writes files; version
+	control operations remain the user's. \\
+	\bottomrule
+\end{longtable}
+
+The class diagram divides the same system differently, by representation rather
+than by component, and the tools line up with it just as cleanly. The
+\code{Absyn} class at the centre of that diagram is \code{Pentateuch.Absyn}, the
+.NET Standard 2.0 library. The \code{C\#} class is Roslyn's view of source. The
+\code{Genesys Project} class with its \code{Function}, \code{Item} and
+\code{State} entities is the Client API's view of the repository. That the two
+decompositions resolve to the same three projects is a reasonable check that
+neither is arbitrary.
+
+\section{Requirements to Tools}
+
+\begin{longtable}{L{0.14\textwidth}L{0.33\textwidth}L{0.43\textwidth}}
+	\caption{Requirements and the tools that serve them}\label{tab:req-tools}\\
+	\toprule
+	\textbf{Req} & \textbf{Tool} & \textbf{How} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Req} & \textbf{Tool} & \textbf{How} \\
+	\midrule
+	\endhead
+
+	\req{SA-1} to \req{SA-3} & GENESYS Client API only & Both ends are model
+	entities, so this translation never leaves \code{Pentateuch.Genesys} and needs
+	no compiler at all. It is the one direction Roslyn plays no part in. \\
+	\addlinespace
+
+	\req{AC-1} & Client API, then Roslyn & The Client API reads the activity, the
+	shared model carries it, Roslyn emits the source. \\
+	\addlinespace
+
+	\req{AC-2} & Roslyn & Generating a class per activity node with function
+	prototypes attached is syntax tree construction, which is what Roslyn's
+	factories are for. \\
+	\addlinespace
+
+	\req{AC-3} & Roslyn & Forks, loops and merges become language constructs,
+	emitted as syntax nodes rather than assembled as text. \\
+	\addlinespace
+
+	\req{AC-4} & Roslyn & Compiling the generated source answers whether it
+	builds. This is the reason the \emph{Verify Generated Code Compiles} action
+	exists in the export activity diagram, and it is available only because the
+	generator is a compiler rather than a text templater. \\
+	\addlinespace
+
+	\req{CS-1} & Roslyn & \code{MSBuildWorkspace} loads the repository and
+	\code{Microsoft.CodeAnalysis.CSharp} produces the control flow graph. \\
+	\addlinespace
+
+	\req{CS-2} & Roslyn & Following calls to a designated depth requires knowing
+	which method a call resolves to, which is the semantic model rather than the
+	syntax tree. \\
+	\addlinespace
+
+	\req{CS-3} & Roslyn & Branch coverage is read off the control flow graph the
+	compiler already builds, rather than being reconstructed. \\
+	\addlinespace
+
+	\req{CS-4} & Roslyn & Recursive and mutually recursive calls are detectable
+	because the semantic model identifies the target method, so the queue in the
+	import activity diagram can refuse to enqueue one twice. \\
+	\addlinespace
+
+	\req{CS-5} & Roslyn & Reporting unused variables, methods and classes needs
+	reference resolution across the whole solution, which is
+	\code{SymbolFinder}. \\
+	\addlinespace
+
+	\req{CS-6} & Roslyn & Deriving state names from the code uses identifiers and
+	structure that the syntax tree preserves. \\
+	\addlinespace
+
+	\req{FS-1} & GENESYS scripting & Not adopted. The committed deliverable runs
+	beside GENESYS rather than inside it, and the architecture is arranged so that
+	a script could later start and control it. \\
+	\addlinespace
+
+	\req{FS-3} & Roslyn and Git & Rename reconciliation needs both: Roslyn to
+	recognise that a symbol is the same one under a new name, and Git's rename
+	detection for files that moved. \\
+	\addlinespace
+
+	\req{NFR-2} & The runtime split & That a failure in the tool cannot terminate
+	GENESYS follows from the two programs being separate processes, which is the
+	decision in Chapter~\ref{ch:runtime} rather than a property of any one
+	tool. \\
+	\addlinespace
+
+	\req{NFR-4} & Pinned package versions & Determinism requires that every
+	developer runs the same Roslyn, since analysis behaviour changes between
+	releases. \\
+	\addlinespace
+
+	\req{NFR-5} & GENESYS & Windows-only is inherited from the host, not
+	chosen. \\
+	\bottomrule
+\end{longtable}
+
+\section{How Design Decisions Constrained the Tools}
+
+Four decisions were made before the toolchain was settled, and each closed off
+options rather than merely informing them. Recording which came first matters,
+because it is the difference between a design that follows from its tools and
+tools that follow from a design.
+
+\paragraph{The process boundary came first.}
+The block diagram separates the components that run with GENESYS from those that
+do not. That boundary is why there are three projects rather than one, why one of
+them targets .NET Standard 2.0, and why a current Roslyn is available at all. Had
+the design placed everything in one process, the tool list would have been
+shorter and considerably worse.
+
+\paragraph{Confining the vendor dependency came first.}
+The block diagram puts the Client API behind a single component. That is what
+makes \req{NFR-2} achievable and what allows most of the codebase to build
+without a licence, which in turn is why a limited number of activations is an
+inconvenience rather than a blocker.
+
+\paragraph{The abstract syntax as pivot came first.}
+The class diagram places \code{Absyn} between the code representation and the
+model representation. \code{Pentateuch.Absyn} is that class made real, and
+.NET Standard 2.0 was selected because it is the only target both halves can
+reference. The library exists to satisfy the diagram, not the other way round.
+
+\paragraph{Generated views ruled out a whole category of tool.}
+Diagrams in GENESYS are generated from entities and relationships rather than
+stored as pictures. The tool therefore creates entities and never draws anything,
+which means no graph layout or diagramming library appears anywhere in this
+document. That absence is a consequence of a design fact, not an oversight

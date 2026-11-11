@@ -1,0 +1,147 @@
+\chapter{Tools Evaluated and Not Adopted}
+\label{ch:rejected}
+
+Each of these was investigated far enough to make a judgement rather than
+dismissed on first impression. One was suggested by the client.
+
+\section{GENESYS Excel Connector}
+\label{sec:excel}
+
+\subsection{What it does}
+
+The Excel Connector is a GENESYS add-in that moves data between a project and a
+spreadsheet. It can download any entity, attribute, parameter or relationship
+from a project into Excel, and upload edited values back into the repository.
+
+\subsection{Why it is useful}
+
+Engineers already use Excel, so it meets people where they are rather than asking
+them to learn an interface. It supports bulk editing, which is substantially
+faster than changing attributes one at a time through the GENESYS interface, and
+it keeps the spreadsheet and the repository synchronised rather than producing a
+dead export.
+
+The client recommended looking at it, and the recommendation was a good one. It
+is the closest existing thing to what this project is building: a bidirectional
+connector between GENESYS and an external representation, with a round trip
+rather than a one-way export.
+
+\subsection{Why it does not work for this project}
+
+Three reasons, in descending order of weight.
+
+\paragraph{It flattens the structure.}
+The connector presents entities and their attributes as rows and columns. What
+the translation needs is the shape of the data: which function calls which, which
+state transitions to which, how a class relates to its methods. Relationships are
+the substance of the model, and a spreadsheet is the wrong representation for a
+graph. The tool would be reconstructing structure that the Client API already
+hands over directly.
+
+\paragraph{It is not automatable.}
+Driving it would mean a script operating the add-in through its user interface,
+pressing buttons and waiting for loading, which is fragile and slow. The Client
+API performs the same reads and writes programmatically and without the
+intermediate file.
+
+\paragraph{It adds a format with no benefit.}
+Every translation would pass through a spreadsheet that neither end wants, purely
+as a transport. The Client API is available, so there is no reason to accept
+that.
+
+\subsection{What it is useful for instead}
+
+It is a good reference for what a connector should do, and the team treats it as
+one. It demonstrates the round trip, the synchronisation behaviour and the scope
+of what the vendor considers reasonable for an integration to touch. It is a model
+to learn from rather than a component to build on.
+
+\section{GENESYS REST API}
+
+Covered in Section~\ref{sec:genesys-api}, since it is best understood alongside
+the interface that replaced it. In short: it exists, it would have been the
+better choice, and it is not available to the team because enabling it requires
+administrative access that the team does not have and the client does not
+provide.
+
+\section{Direct Database Access}
+
+\subsection{What it does}
+
+GENESYS stores its repositories in SQL Server, with the database files under the
+installation's data directory. The database can be opened with standard tooling
+such as SQL Server Management Studio and inspected or modified directly.
+
+\subsection{Why it might be useful}
+
+It bypasses every API. Anything the repository holds is reachable, with no
+framework constraint, no licensing component, and no dependence on which
+operations the vendor chose to expose. For a project that needs both read and
+write access to model content, that is superficially attractive.
+
+\subsection{Why it does not work for this project}
+
+\paragraph{The schema is undocumented and private.}
+GENESYS uses a schema-driven entity-relationship-attribute model in which entity
+classes are themselves data. The physical tables are a generic store rather than
+tables named after the concepts in the model, so using them would mean reverse
+engineering a metamodel held as data. That is a project in itself.
+
+\paragraph{Writing through it bypasses everything that keeps the model valid.}
+Schema validation, relationship integrity, the view generators that produce
+diagrams, and the application's own change tracking would all be circumvented. A
+write that looked correct in the database could leave the repository
+inconsistent.
+
+\paragraph{It is an implementation detail, not an interface.}
+Nothing obliges the vendor to keep the schema stable across versions, so a tool
+built on it would break on upgrade. A deliverable the client cannot safely
+upgrade is not a deliverable.
+
+\paragraph{Holding the database open prevents GENESYS from starting.}
+The database files are served by the GENESYS services while the application runs,
+so an external connection contends with a live process. In practice the effect is
+worse than contention: with an external tool connected, GENESYS fails to reach
+its own repository on startup and falls back to prompting for a licence key, as
+though the installation were unlicensed. Recovering from that means closing the
+external connection and working back through the licensing wizard, which is
+disruptive enough on its own to rule the approach out even if the earlier
+objections did not.
+
+\subsection{What it was useful for}
+
+Opening the database read-only was informative during investigation. It confirmed
+the entity-attribute storage model and made clear why the schema must be read at
+run time rather than assumed. It was reconnaissance, not a route.
+
+\section{GNSX and GNUX Interchange Files}
+
+\subsection{What it does}
+
+GENESYS imports and exports its own interchange format, used for project
+backups, baselines and change files. A file can hold a whole repository, a
+project, or a subset of one, and the import command loads it back.
+
+\subsection{Why it might be useful}
+
+It needs no API, no authentication and no network. A tool could produce an import
+file and have the user load it, which would make the write path trivially simple
+and would work regardless of what the Client API does or does not permit. It was
+the natural fallback had the Client API turned out to be read-only.
+
+\subsection{Why it does not work for this project}
+
+\paragraph{The University Edition uses a different format.}
+The edition available to the team imports and exports GNUX rather than GNSX. The
+two are not interchangeable, so files produced during development would not load
+into a commercial GENESYS installation, and the client could not use the output.
+
+\paragraph{It is not a live connection.}
+Every operation would require the user to export a file, run the tool, and import
+the result. That is a worse workflow than the one the Client API makes possible,
+and it rules out the push and pull behaviour entirely.
+
+\paragraph{Import semantics are unclear.}
+Whether an import merges against existing entities by identifier or creates
+duplicates determines whether a round trip is even possible, and this was not
+established.
