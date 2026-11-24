@@ -1,0 +1,245 @@
+% !TeX root = ../main.tex
+\chapter{Architectural Patterns}
+\label{ch:patterns}
+
+\section{How the Choice Was Made}
+
+Architectural structure follows from the non-functional requirements more
+closely than from the functional ones. A functional requirement can usually be
+met by many structures; a non-functional one tends to rule most of them out.
+Four of ours account for most of the structure.
+
+\begin{longtable}{L{0.14\textwidth}L{0.36\textwidth}L{0.42\textwidth}}
+	\caption{Non-functional requirements that drove the structure}\label{tab:drivers}\\
+	\toprule
+	\textbf{ID} & \textbf{What it asks for} & \textbf{Structural consequence} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{ID} & \textbf{What it asks for} & \textbf{Structural consequence} \\
+	\midrule
+	\endhead
+
+	\req{NFR-8} & A generated diagram is readable without the source beside
+	it. The governing criterion. & Discarding detail in the diagram is a decision in its own
+	right. This is the Abstraction subsystem. \\
+	\addlinespace
+	\req{NFR-2} & A failure in the tool must not terminate GENESYS. & The
+	analysis cannot share a process with the host. Two processes, not one. \\
+	\addlinespace
+	\req{NFR-4} & The same inputs always produce the same output, including
+	ordering. & Each stage is a function of its input rather than of
+	accumulated state, which is what makes repeated runs comparable. \\
+	\addlinespace
+	\req{NFR-6} & The projects that do not reference the GENESYS assemblies
+	build without a GENESYS installation. & The vendor dependency is confined
+	to one project, so the boundary between subsystems is also a boundary
+	between licensed and our unlicensed code. \\
+	\bottomrule
+\end{longtable}
+
+Maintainability points the same way. It is best served by fine-grained,
+self-contained components, and a translation decomposes naturally into stages
+that each do one thing. That is the shape of \pattern{Pipe and
+Filter}, which is the primary pattern of this system.
+
+\section{Pipe and Filter: The Primary Pattern}
+\label{sec:pipe-and-filter}
+
+\umlfigure{pipeline}{The translation pipeline. Each box is a filter; each
+labelled arrow is a pipe carrying the named format}{fig:pipeline}
+
+A translation is the processing of data in separate stages, each stage
+performing one transformation and passing the result on. Figure~\ref{fig:pipeline}
+shows the code-to-activity direction. The Code Extractor turns source files into
+syntax trees and a control flow graph, which is \req{CA-1}. The Abstraction
+filter discards constructs below the level a systems engineer reads, which is
+where \req{NFR-8} is enforced. The Model Mapper turns what survives into
+entities and relationships, which is \req{CA-2}.
+
+A compiler is the standard example of this pattern, and this tool is a compiler
+in the ordinary sense: it has a front end that parses, an intermediate
+representation, and a back end that emits. That it reads a model rather than a language on one side
+does not change the shape.
+
+\subsection{Why It Fits}
+
+\begin{longtable}{L{0.34\textwidth}L{0.58\textwidth}}
+	\caption{Pipe and Filter against this system}\label{tab:pf-fit}\\
+	\toprule
+	\textbf{Property of the pattern} & \textbf{How it applies here} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Property of the pattern} & \textbf{How it applies here} \\
+	\midrule
+	\endhead
+
+	Inputs processed in separate stages to produce related outputs &
+	Four translations, each a chain of stages over the same material. The
+	outputs are related by construction, since they are produced from one
+	abstract syntax. \\
+	\addlinespace
+	Supports transformation reuse & The review and write sequence is one
+	filter shared by all four translations, which is what makes \req{CM-3} and
+	\req{NFR-3} hold uniformly rather than being re-implemented per direction.
+	The Abstraction filter is likewise shared. \\
+	\addlinespace
+	Seperate transformations allow for straightforward evolution & Adding Visual
+	Basic means one more filter at the source end and no change to anything
+	downstream. This is the concrete reason the tool supports two languages
+	without two translators. \\
+	\addlinespace
+	Can be sequential or concurrent & The two halves already run in separate
+	processes, which the pattern accommodates without alteration. That is what
+	lets \req{NFR-2} be satisfied without distorting the design. \\
+	\bottomrule
+\end{longtable}
+
+\subsection{The Cost We Accept}
+
+Sommerville states the cost of this pipe and filter architecture directly: the format for data
+transfer has to be agreed between communicating transformations, and each
+transformation must parse its input and unparse its output to that form. That
+cost appears here in two places.
+
+The agreed form is \code{Pentateuch.Absyn}, described in
+Section~\ref{sec:canonical}. Agreeing it was not free, and it is the reason a
+third project exists where two would otherwise do. The unresolved half of the
+cost is recorded as risk \textbf{R-2}: the mechanism by which the two processes
+exchange that form has not been chosen. The abstract syntax fixes \emph{what} is
+exchanged, so only the transport is open, but the pattern is what makes the
+question unavoidable.
+
+The second cost is less obvious. Because each filter must produce the agreed
+form, a construct the abstract syntax cannot express cannot be carried. Rather
+than let such a construct be silently dropped, \req{CA-8} and \req{AS-3} require
+the tool to report it. The pattern did not create those requirements, but it is
+what makes them necessary rather than optional.
+
+\section{Repository: The Architecture We Integrate With}
+\label{sec:repository}
+
+\umlfigure{repository-pattern}{GENESYS organised as a repository. Views do not
+communicate with each other}{fig:repository}
+
+A reasonable question about any system with a database at its centre is why it is not
+simply a \pattern{Repository} architecture. The question should be answered
+here, because there is a repository and it is central to everything the tool
+does.
+
+GENESYS is itself a \pattern{Repository} architecture, in the strict sense of
+the pattern. All model data lives in one store, and the components around it,
+the activity diagram view, the state diagram view, the hierarchy view, do not
+communicate with one another. Each regenerates from the repository on demand.
+Figure~\ref{fig:repository} shows the arrangement with our Model Mapper drawn as
+one more client of the same store.
+
+This has a direct and useful consequence. Because diagrams are views generated
+from the repository rather than stored pictures, the tool creates entities and
+relationships and produces no layout, geometry or formatting. That is
+\textbf{C-6}, and \req{CM-5} is the requirement that follows from it. A
+property of a system we do not own removes a subsystem from ours. We do not need a diagramming component, and the output of a
+translation is complete the moment the entities exist.
+
+\subsection{Why Our Own Architecture Is Not a Repository}
+
+The pattern requires that components interact only through the repository and
+not directly. Ours do the opposite. The Code Extractor hands syntax trees to the
+Abstraction filter, which hands abstract syntax to the Model Mapper. That is
+direct interaction between stages, and it is how the design works.
+
+The repository is where our pipeline ends, not how it is organised internally.
+Drawing the system as a \pattern{Repository} architecture would also lose the
+property that matters most for \req{NFR-4}: in a repository architecture, the
+order in which components run is not fixed by the structure, whereas determinism
+of output requires exactly that it be fixed.
+
+\section{Client-Server: Our Position Relative to GENESYS}
+
+The tool reaches the model through the GENESYS Client API, authenticating
+against a repository that may be local or remote and depending on the Sentinel
+licensing components to do so. That is a \pattern{Client-Server} relationship,
+and we sit firmly on the client side of it. The relevant consequences are
+constraints rather than choices: \textbf{C-4} requires a licensed local
+installation wherever the tool runs, and \textbf{C-2} records that the server's
+REST interface is not available to us, so all access goes through the client
+assemblies.
+
+Sommerville lists performance depending on the network as a disadvantage of this
+pattern, and it is the reason the depth control of \req{CA-3} exists. The amount
+of model traffic a translation generates is bounded by the user rather than by
+the size of the repository.
+
+One stretch requirement would change our position. \req{FS-1} would have the
+tool run as a background service started and controlled by a GENESYS script, at
+which point the tool becomes a server with GENESYS as its client. The design
+keeps the application separable from any interface placed in front of it so that
+this does not require restructuring. It is constrained by \textbf{C-3} rather
+than by the architecture.
+
+\section{Layered: A Local Principle, Not the Architecture}
+\label{sec:layered}
+
+\umlfigure{layering}{Layering holds inside a process and does not hold across
+them}{fig:layering}
+
+\pattern{Layered} architecture organises a system into tiers, each providing
+services to the tier above, with dependencies pointing one way. Part of our
+system is organised this way and part of it is not, and the distinction matters,
+because claiming the whole system as layered would be wrong.
+
+Inside each process the arrangement is genuinely layered, as the left panel of
+Figure~\ref{fig:layering} shows. An access tier wraps the vendor APIs, a
+translation tier turns what they return into our own structures, and a policy
+tier decides what is significant enough to appear in the output. Each tier uses
+only the one below it. This is the arrangement Sommerville's advantage applies
+to: the access tier could be replaced wholesale, which is what makes the
+interchange-file fallback of risk \textbf{R-1} viable without touching anything
+above it.
+
+Across processes the arrangement is not layered. \code{Pentateuch.Genesys} and
+\code{Pentateuch.Translator} both depend on \code{Pentateuch.Absyn} and neither
+depends on the other. Two components depending on a third is a shared kernel,
+not a layer stack: neither of the two sits above the other, and there is no
+service relationship between them to invert. Calling it a two-layer architecture
+would describe the dependency graph without describing the design.
+
+The honest summary is that layering is a local organising principle used inside
+each process, and the system's architecture is the pipeline described in
+Section~\ref{sec:pipe-and-filter}.
+
+\section{Summary of the Five}
+
+\begin{longtable}{L{0.20\textwidth}L{0.17\textwidth}L{0.55\textwidth}}
+	\caption{Verdict on each architectural pattern considered}\label{tab:verdicts}\\
+	\toprule
+	\textbf{Pattern} & \textbf{Verdict} & \textbf{Reason} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Pattern} & \textbf{Verdict} & \textbf{Reason} \\
+	\midrule
+	\endhead
+
+	\pattern{Pipe and Filter} & Adopted, primary & A translation is staged
+	data transformation. Gives transformation reuse across all four
+	translations and makes a second language additive. \\
+	\addlinespace
+	\pattern{Repository} & Describes GENESYS, not us & Our stages interact
+	directly, which the pattern forbids. Its presence on the GENESYS side is
+	what makes \req{CM-5} achievable. \\
+	\addlinespace
+	\pattern{Client-Server} & Adopted at the boundary & The Client API
+	relationship, with the tool as client. \req{FS-1} would reverse the roles
+	for a future interface. \\
+	\addlinespace
+	\pattern{Layered} & Adopted locally & Holds inside each process as access,
+	translation and policy tiers. Does not describe the relationship between
+	processes. \\
+	\addlinespace
+	\pattern{MVC} & Not applicable & The tool has one view and no interactive
+	editing of model data, so the problem this pattern solves does not arise.
+	It would become relevant only if \req{FS-2}, the status window, is built. \\
+	\bottomrule
+\end{longtable}

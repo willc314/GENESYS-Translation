@@ -1,0 +1,290 @@
+% !TeX root = ../main.tex
+\chapter{Object-Oriented Design Patterns}
+\label{ch:design-patterns}
+
+Architectural patterns describe how the system is organised. The patterns in
+this chapter are smaller: they describe how particular problems inside the
+subsystems are solved. The names, intents and consequences are those of Gamma
+and colleagues, listed in Chapter~\ref{ch:references}. Five are adopted and five
+were considered and not adopted. In two cases the pattern is not a choice we
+made but one the vendor API requires us to meet. We say so where that applies,
+rather than present it as a decision.
+
+\section{Classification}
+
+Each pattern has a purpose, which is what it is for, and a scope, which says
+whether it works through inheritance between classes or through composition
+between objects. Setting the adopted set out this way shows where the design's
+difficulty actually lies.
+
+\begin{longtable}{L{0.17\textwidth}L{0.23\textwidth}L{0.52\textwidth}}
+	\caption{The adopted patterns by purpose and scope}\label{tab:classification}\\
+	\toprule
+	\textbf{Pattern} & \textbf{Purpose and scope} & \textbf{Problem it solves here} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Pattern} & \textbf{Purpose and scope} & \textbf{Problem it solves here} \\
+	\midrule
+	\endhead
+
+	\textsc{Composite} & Object structural & Behaviour constructs nest, and the
+	code that walks them should not care whether it holds a leaf or a
+	branch. \\
+	\addlinespace
+	\textsc{Adapter} & Object structural & Two vendor libraries speak their own
+	vocabularies, and neither is ours. \\
+	\addlinespace
+	\textsc{Visitor} & Object behavioural & An operation over the construct tree
+	should be added without changing the construct classes. \\
+	\addlinespace
+	\textsc{Strategy} & Object behavioural & Two target languages, one
+	generation algorithm. \\
+	\addlinespace
+	\textsc{Command} & Object behavioural & A change must be describable before
+	it is performed. \\
+	\bottomrule
+\end{longtable}
+
+Two things follow from the table. Every adopted pattern has object scope rather
+than class scope, so the design is held together by composition rather than by
+inheritance hierarchies. That is consistent with the pipeline of
+Chapter~\ref{ch:patterns}, where stages are assembled rather than subclassed.
+
+More telling, no creational pattern is adopted at all. Creational patterns solve
+the problem of deciding which objects to make and how to make them. That is not
+where this system is difficult. The set of things the tool creates is fixed in
+advance by \textbf{C-11} on the model side and by the target language's grammar
+on the code side, so there is nothing to defer or configure. The difficulty is
+in traversing a structure and translating it faithfully, which is why the
+adopted set is structural and behavioural throughout.
+
+\section{Composite and Visitor: The Pair That Carries the Behaviour}
+\label{sec:composite-visitor}
+
+These two are treated together because neither is useful here without the other.
+
+\subsection{Composite}
+
+Sequencing inside a GENESYS behaviour diagram is carried by the behaviour
+constructs Function, Loop, Loop Exit, Iterate, Select, Parallel, Replicate and
+Exit, which is recorded as \textbf{C-11}. These nest: a Loop contains the
+constructs that form its body, a Select contains its branches, and either may
+contain further loops and selects.
+
+That is the \textsc{Composite} intent exactly, which is to compose objects into
+tree structures representing part-whole hierarchies and let clients treat
+individual objects and compositions uniformly. The abstract syntax in
+\code{Pentateuch.Absyn} is a tree of this shape, and it is what lets
+\req{CA-2.4} be expressed as a single construct rather than an unrolled sequence
+of nodes.
+
+The pattern's stated cost is that it can make a design overly general, and in
+particular that restrictions such as type checking become harder to express. We
+accept that cost, because the restriction we care about is not structural but
+semantic: a construct that cannot be translated is reported under \req{CA-8} and
+\req{AS-3} rather than prevented from being built.
+
+\subsection{Visitor}
+
+Having a composite tree, something must operate on it, and the operations differ
+by direction. Generation turns each construct into a control flow structure in
+the target language. Extraction produces constructs from a control flow graph.
+Both dispatch on the construct type, and both would otherwise be a chain of type
+tests spread across the code that walks the tree.
+
+\textsc{Visitor} separates the operation from the structure it operates on, so a
+new operation is a new visitor rather than a change to every node class. This is
+not a free choice. The GENESYS structure traversal interface is itself a visitor
+interface, and the set of constructs in \textbf{C-11} is precisely the set of
+methods it exposes. We implement the pattern because the vendor API presents it.
+
+The fit is closer than convenience. The pattern's stated condition for use is
+that the classes defining the object structure rarely change while new
+operations over the whole structure are often needed. The construct set is
+defined by the vendor and fixed for any given GENESYS release, and each new
+translation direction is a new operation over it. That is the condition, almost
+word for word.
+
+That matters because the pattern's main drawback is the reverse case: adding a
+new element class is hard, since every visitor must gain a method for it. If
+GENESYS introduced a ninth behaviour construct, every visitor in the tool would
+have to change. \textbf{C-11} is what makes that drawback acceptable rather than
+dangerous, since the set is not ours to extend and does not move.
+
+This arrangement gives us a property we rely on. Because the visitor interface
+enumerates the construct types, a construct the tool does not handle cannot be
+silently ignored: the method exists and must do something. That is what makes
+\req{CA-8} and \req{AS-3}, reporting a construct rather than mistranslating it,
+implementable with confidence rather than by hoping the type tests were
+exhaustive.
+
+\section{Adapter: Two Vendor APIs, One Vocabulary}
+
+Neither the Client API nor Roslyn speaks in terms of our abstract syntax, and we
+control neither. \code{Pentateuch.Genesys} wraps the Client API and
+\code{Pentateuch.Translator} wraps Roslyn, so that each presents its data in our
+terms.
+
+This is the \textsc{Adapter} pattern: converting one interface into the one a
+client expects. The incompatibility is real, since \textbf{C-1} means the two
+libraries cannot be referenced from the same project. The adapters are therefore
+also where the solution splits, so the subsystem boundaries of
+Chapter~\ref{ch:subsystems} and the adapter boundaries coincide.
+
+\paragraph{Object adapter, not class adapter.}
+We use the object form, which holds a reference to the adapted type instead of
+inheriting from it. A class adapter cannot cover a type together with all of its
+subtypes, and the GENESYS entity classes form hierarchies that \textbf{C-7} says
+we must discover at run time. One object adapter can serve the whole family.
+
+\paragraph{Why not Facade.}
+A facade simplifies access to a subsystem but keeps its vocabulary. An adapter
+changes the vocabulary. Our wrappers do simplify, but that is not why they
+exist: everything above them is written against the abstract syntax and must not
+know whether a model came from the Client API or from a file. That is interface
+conversion, so \textsc{Adapter} is the right name.
+
+A further benefit follows. Because the layers above use our vocabulary, the
+interchange-file fallback of \textbf{R-1} means replacing one adapter and
+nothing else, as described in Section~\ref{sec:layered}.
+
+\section{Strategy: Two Target Languages, One Pipeline}
+
+\req{AC-1} requires the tool to generate C\# or Visual Basic. The difference
+between them is confined to how each construct is written out, and nothing
+upstream of generation changes.
+
+\textsc{Strategy} defines a family of algorithms, encapsulates each, and makes
+them interchangeable, so the Code Generator holds one algorithm and two
+strategies rather than two algorithms. Combined with the canonical form of
+Section~\ref{sec:canonical}, this is what makes a second language additive
+and interchangeable.
+
+The pattern's stated costs apply only weakly here. One is that clients must know
+about all the strategies in order to choose between them, which in our case
+means the user names a target language and nothing else has to. The other is an
+increase in the number of objects, which against a code generator that already
+holds a visitor per direction is not a meaningful addition.
+
+\section{Command: Proposing a Change Before Making It}
+\label{sec:command}
+
+\req{CM-3} requires the tool to present what it proposes to change and to write
+nothing until the user accepts. \req{NFR-3} requires that a cancelled or failed
+operation leave nothing partially written, on either side.
+
+Both are satisfied by representing each intended modification as an object
+rather than performing it immediately. \textsc{Command} encapsulates a request
+in exactly this way, and the pattern's stated uses include specifying and
+executing requests at different times, logging changes, and structuring a system
+around high-level operations built from primitive ones. All three describe what
+the review step does.
+
+The change set shown at review is the collected list of such objects, which is
+what allows it to be displayed before any of it is applied. Acceptance executes
+the list; cancellation discards it. Because nothing has been written when the
+decision is made, the property \req{NFR-3} asks for is structural rather than
+something that has to be undone afterwards. Test V-9 checks it by comparing the
+repository byte for byte against its prior state.
+
+Two further consequences come for free. The pattern notes that commands can be
+assembled into composite commands, which is what a change set is: a single
+acceptance applies a list of individual modifications as one unit. And the same
+objects carry enough information to describe what was done, which is what
+\req{NFR-7} asks a log to contain.
+
+\section{Patterns Considered and Not Adopted}
+
+\begin{longtable}{L{0.19\textwidth}L{0.73\textwidth}}
+	\caption{Design patterns considered and not adopted}\label{tab:rejected-patterns}\\
+	\toprule
+	\textbf{Pattern} & \textbf{Why not} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Pattern} & \textbf{Why not} \\
+	\midrule
+	\endhead
+
+	\textsc{Interpreter} & The closest call of the five. The pattern's own
+	description of its structure is ours: the abstract syntax tree is a
+	\textsc{Composite}, and a \textsc{Visitor} holds the behaviour for each
+	node in one class. We have both. What we do not have is its purpose, which
+	is to interpret sentences in a language. Nothing evaluates our tree; it is
+	translated into another representation and discarded. Adopting the name
+	would describe the data structure correctly and the behaviour not at
+	all. \\
+	\addlinespace
+	\textsc{Template Method} & Names something real. All four translations
+	share a skeleton: connect, read, abstract, map, review, write, with the
+	middle varying by direction. \textsc{Template Method} is the way to express
+	that through inheritance, with a base class fixing the order and subclasses
+	filling in steps. We express the same commonality by composition instead,
+	as shared filters in one pipeline, which is what
+	Chapter~\ref{ch:patterns} describes. The pattern is not wrong about the
+	structure; the architecture already carries it. \\
+	\addlinespace
+	\textsc{Singleton} & Superficially attractive for the repository
+	connection, since \textbf{C-5} means one project is open at a time and the
+	connection is expensive to establish. Rejected because a global instance
+	would make the connection impossible to substitute in a test, and
+	\req{NFR-6} exists specifically so that the projects not referencing
+	GENESYS can be tested without it. A single instance passed explicitly gives
+	the same lifetime without the coupling. \\
+	\addlinespace
+	\textsc{Memento} & The usual companion to \textsc{Command}, used to capture
+	enough state to undo an operation. Not needed, because the design avoids
+	the problem it solves. Nothing is written until the user accepts, so there
+	is no committed state to roll back and no snapshot to keep. This is
+	\req{NFR-3} achieved by ordering rather than by reversal. \\
+	\addlinespace
+	\textsc{Observer} & Would suit \req{FS-2}, the status window that follows
+	each translation and reports progress and outcome. Not adopted now, because
+	the minimum viable product performs one translation per invocation and
+	reports at the end, so there is no ongoing state for an observer to watch.
+	It would become relevant if \req{FS-2} is built. \\
+	\bottomrule
+\end{longtable}
+
+\section{Naming Convention for the Implementation}
+
+Where a class exists because of a pattern, its name ends in the pattern's name,
+so that \code{ConstructVisitor}, \code{GenesysEntityAdapter} and
+\code{CreateEntityCommand} are self-describing to a reader who knows the
+patterns and merely verbose to one who does not. This costs nothing and makes
+the chapter above checkable against the source during the build semester, which
+matters because a pattern claimed in a design document and absent from the code
+is worse than no claim at all.
+
+\section{Summary}
+
+\begin{longtable}{L{0.17\textwidth}L{0.42\textwidth}L{0.33\textwidth}}
+	\caption{Design patterns adopted}\label{tab:patterns-adopted}\\
+	\toprule
+	\textbf{Pattern} & \textbf{Where} & \textbf{What it serves} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Pattern} & \textbf{Where} & \textbf{What it serves} \\
+	\midrule
+	\endhead
+
+	\textsc{Composite} & The abstract syntax tree of the behaviour constructs
+	in \textbf{C-11} & \req{CA-2.4}, representing a loop once \\
+	\addlinespace
+	\textsc{Adapter} & \code{Pentateuch.Genesys} over the Client API,
+	\code{Pentateuch.Translator} over Roslyn, object form in both &
+	\textbf{C-1}, \textbf{C-7}, and the fallback in risk \textbf{R-1} \\
+	\addlinespace
+	\textsc{Visitor} & Dispatch over those constructs, following the vendor's
+	own traversal interface & \req{CA-8} and \req{AS-3}, reporting rather than
+	mistranslating \\
+	\addlinespace
+	\textsc{Strategy} & Emission rules inside the Code Generator &
+	\req{AC-1}, two target languages \\
+	\addlinespace
+	\textsc{Command} & The change set held at the review step & \req{CM-3},
+	\req{NFR-3}, and a path to \req{NFR-7} \\
+	\bottomrule
+\end{longtable}

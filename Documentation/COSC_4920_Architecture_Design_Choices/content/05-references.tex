@@ -1,0 +1,55 @@
+% !TeX root = ../main.tex
+\chapter{References}
+\label{ch:references}
+
+\section{Works the Pattern Names Are Taken From}
+
+The architectural patterns named in Chapter~\ref{ch:patterns}, and the
+advantages and disadvantages attributed to each, follow Sommerville. The
+object-oriented patterns named in Chapter~\ref{ch:design-patterns} follow Gamma
+and colleagues, commonly cited as the Gang of Four.
+
+\begin{itemize}
+	\item Ian Sommerville. \emph{Software Engineering}. Pearson. Chapter 6,
+	      Architectural Design, covers \pattern{Pipe and Filter},
+	      \pattern{Repository}, \pattern{Client-Server}, \pattern{Layered} and
+	      \pattern{MVC}, and is the source for the properties of each that
+	      Chapter~\ref{ch:patterns} tests this system against.
+	\item Erich Gamma, Richard Helm, Ralph Johnson and John Vlissides.
+	      \emph{Design Patterns: Elements of Reusable Object-Oriented
+	      Software}. Addison-Wesley. The source for \textsc{Composite},
+	      \textsc{Visitor}, \textsc{Adapter}, \textsc{Strategy},
+	      \textsc{Command} and the five patterns considered and not adopted.
+\end{itemize}
+
+\section{Project Documents}
+
+This document is the fourth of four and assumes the other three rather than
+repeating them.
+
+\begin{itemize}
+	\item \emph{System Requirements Specification}, Team Pentateuch. Defines
+	      every requirement identifier used here, along with the constraints
+	      \textbf{C-n}, assumptions \textbf{A-n} and risks \textbf{R-n}. It is
+	      the authority for the text of any requirement quoted in this
+	      document.
+	\item \emph{UML Design Document}, Team Pentateuch. Models the structure and
+	      behaviour this document explains the reasoning behind. Its block
+	      diagram is the decomposition that Chapter~\ref{ch:subsystems}
+	      elaborates, and its class diagram chapter records the GENESYS schema
+	      properties cited here.
+	\item \emph{Tool Selection Document}, Team Pentateuch. Records which
+	      external tools and interfaces the project builds on and why the
+	      alternatives were set aside. Chapter~\ref{ch:patterns} treats those
+	      choices as settled and reasons about the structure they imply.
+\end{itemize}
+
+\section{A Note on the GENESYS Schema}
+
+The schema properties this document relies on, chiefly that a transition is an
+entity rather than an attribute and that sequencing is carried by the fixed set
+of behaviour constructs in \textbf{C-11}, were established by inspecting a
+GENESYS project and the published interfaces of the Client API, not taken from
+vendor documentation. They are recorded in the UML Design Document so that a
+later reader can tell which parts of the design rest on observation rather than
+on a specification.

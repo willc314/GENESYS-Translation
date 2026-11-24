@@ -1,0 +1,153 @@
+% !TeX root = ../main.tex
+\chapter{Requirements Behind the Architecture}
+\label{ch:requirements}
+
+This chapter answers whether the architectural choices fit the original
+requirements. It traces in both directions: from each requirement that shaped
+the structure to the structure it produced, and from each figure in this
+document back to the requirements that informed it.
+
+\section{Requirements That Shaped the Structure}
+
+\begin{longtable}{L{0.13\textwidth}L{0.37\textwidth}L{0.42\textwidth}}
+	\caption{Requirements and the architecture they produced}\label{tab:req-to-arch}\\
+	\toprule
+	\textbf{ID} & \textbf{Requirement} & \textbf{Architectural consequence} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{ID} & \textbf{Requirement} & \textbf{Architectural consequence} \\
+	\midrule
+	\endhead
+
+	\req{NFR-8} & A generated diagram is understandable without reading the
+	code or model it came from. & Abstraction is a subsystem, not a step
+	inside another one. It is the only subsystem that exists for a
+	non-functional requirement. Figure~\ref{fig:pipeline}. \\
+	\addlinespace
+	\req{NFR-2} & A failure in the tool must not terminate GENESYS. & Two
+	processes rather than one, with no shared address space.
+	Figure~\ref{fig:subsystems}. \\
+	\addlinespace
+	\req{NFR-3} & A cancelled or failed operation leaves nothing partially
+	written. & The review step is a shared filter at the end of every
+	pipeline, and changes are held as objects until accepted.
+	Section~\ref{sec:command}. \\
+	\addlinespace
+	\req{NFR-4} & The same inputs always produce the same output. & Fixed
+	stage order, each stage a function of its input. This is the property the
+	\pattern{Repository} alternative would have cost us,
+	Section~\ref{sec:repository}. \\
+	\addlinespace
+	\req{NFR-6} & The projects not referencing GENESYS build without it. &
+	The vendor dependency is confined to one project, so the subsystem
+	boundary is also the licence boundary. Figure~\ref{fig:subsystems}. \\
+	\addlinespace
+	\req{CM-2} & The tool works from the schema the project actually defines.
+	& The Repository Client reads the schema before the Model Mapper
+	addresses anything, which fixes an ordering between two subsystems. \\
+	\addlinespace
+	\req{CM-5} & Entities and relationships only, no layout or formatting. &
+	No diagramming subsystem exists. This follows from GENESYS being a
+	\pattern{Repository} architecture, Figure~\ref{fig:repository}. \\
+	\addlinespace
+	\req{CA-3} & The user controls where translation starts and how far it
+	goes. & Work is a bounded queue rather than an open traversal, which is
+	also what keeps the \pattern{Client-Server} traffic bounded. \\
+	\addlinespace
+	\req{AC-1} & Generate C\# or Visual Basic. & \textsc{Strategy} inside the
+	Code Generator, over one canonical form.
+	Figure~\ref{fig:canonical}. \\
+	\bottomrule
+\end{longtable}
+
+\section{Constraints That Removed Choices}
+
+Several of the arrangements above were not decided by us. Recording which is
+which matters, because a later reader needs to know what can be revisited.
+
+\begin{longtable}{L{0.10\textwidth}L{0.40\textwidth}L{0.42\textwidth}}
+	\caption{Constraints and what they fixed}\label{tab:constraints-arch}\\
+	\toprule
+	\textbf{ID} & \textbf{Constraint} & \textbf{What it fixed} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{ID} & \textbf{Constraint} & \textbf{What it fixed} \\
+	\midrule
+	\endhead
+
+	\textbf{C-1} & The Client API assemblies target .NET Framework 4.8 and
+	calling code must match. & The split across runtimes, and therefore the
+	existence of \code{Pentateuch.Absyn} on .NET Standard 2.0. \\
+	\addlinespace
+	\textbf{C-3} & GENESYS loads its own Roslyn, and two versions cannot share
+	a process. & That the analysis runs outside GENESYS. Constrains
+	\req{FS-1}. \\
+	\addlinespace
+	\textbf{C-6} & Diagrams are views generated from the repository. & That no
+	diagramming component is needed. \\
+	\addlinespace
+	\textbf{C-7} & Classes and attributes are per project and may be aliased.
+	& That the schema is read at run time, fixing the order of the Repository
+	Client and the Model Mapper. \\
+	\addlinespace
+	\textbf{C-11} & Sequencing is carried by a fixed set of behaviour
+	constructs. & \textsc{Composite} for the tree and \textsc{Visitor} for
+	dispatch, Section~\ref{sec:composite-visitor}. \\
+	\addlinespace
+	\textbf{C-12} & A state machine cannot express simultaneity. & That
+	\req{AS-3} reports rather than flattens, and that the two directions of
+	the activity and state pair are specified separately. \\
+	\bottomrule
+\end{longtable}
+
+\section{Figures Traced to Requirements}
+
+Each figure in this document is listed below with the requirements that
+informed it, so that a reader can check a diagram against the requirement it
+serves rather than taking the connection on trust.
+
+\begin{longtable}{L{0.26\textwidth}L{0.30\textwidth}L{0.36\textwidth}}
+	\caption{Figures and the requirements behind them}\label{tab:fig-trace}\\
+	\toprule
+	\textbf{Figure} & \textbf{Shows} & \textbf{Requirements} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Figure} & \textbf{Shows} & \textbf{Requirements} \\
+	\midrule
+	\endhead
+
+	Figure~\ref{fig:pipeline} & The filter chain and the format on each
+	pipe & \req{CA-1}, \req{CA-2}, \req{NFR-8}, and risk \textbf{R-2} at the
+	process boundary \\
+	\addlinespace
+	Figure~\ref{fig:repository} & GENESYS as a repository, with our mapper as
+	one client & \req{CM-5}, \textbf{C-6} \\
+	\addlinespace
+	Figure~\ref{fig:layering} & Where layering holds and where it does
+	not & \textbf{C-1}, \req{NFR-6}, and the fallback in \textbf{R-1} \\
+	\addlinespace
+	Figure~\ref{fig:subsystems} & Subsystems grouped by project and
+	runtime & \req{NFR-2}, \req{NFR-6}, \textbf{C-1}, \textbf{C-3} \\
+	\addlinespace
+	Figure~\ref{fig:canonical} & The abstract syntax as canonical form &
+	\req{AC-1}, \textbf{C-1} \\
+	\bottomrule
+\end{longtable}
+
+\section{Where the Architecture Is Still Open}
+
+The question remaining is the exchange mechanism between the two processes, risk
+\textbf{R-2}. The abstract syntax fixes what is exchanged, so only the transport
+is undecided, and the fallback is serialised messages over standard streams
+which needs no shared state. It is the unpaid half of the cost that
+\pattern{Pipe and Filter} charges.
+
+One assumption underlies all of it. \textbf{A-1} holds that the Client API
+permits creating and updating entities and not only reading them. It is
+unproven, and risk \textbf{R-1} tracks it. If it fails, the Repository Client
+becomes a generator of interchange files for manual import. The architecture
+survives that substitution, which is the point of putting an adapter there, but
+the tool's usefulness would be materially reduced.
