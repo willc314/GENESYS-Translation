@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="GENESYS Is a Repository Architecture" id="repository-pattern">
+    <mxGraphModel dx="1100" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="frame" value="GENESYS Is a Repository Architecture" style="shape=umlFrame;whiteSpace=wrap;html=1;width=310;height=30;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="810" height="520" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repo" value="GENESYS Repository&#xa;entities and relationships" style="whiteSpace=wrap;html=1;fillColor=#f2f2f2;" vertex="1" parent="1">
+          <mxGeometry x="315" y="230" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="av" value="Activity Diagram View" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="110" width="175" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="State Diagram View" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="605" y="110" width="175" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hv" value="Hierarchy View" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="70" y="390" width="175" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="mm" value="Model Mapper&#xa;ours" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="605" y="390" width="175" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.3333333333333333;startArrow=classic;startFill=1;" edge="1" parent="1" source="av" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.6666666666666666;startArrow=classic;startFill=1;" edge="1" parent="1" source="hv" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.3333333333333333;startArrow=classic;startFill=1;" edge="1" parent="1" source="sv" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0;exitY=0.5;entryX=1;entryY=0.6666666666666666;startArrow=classic;startFill=1;" edge="1" parent="1" source="mm" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="No component talks to another. Every view regenerates from the repository on demand." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="155.4" y="471" width="539.2" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="That is why CM-5 and C-6 hold: our output is complete once the entities exist, and the tool" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="133.35" y="491" width="583.3" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" value="needs no diagramming component at all. We are one more client of this repository." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="164.85" y="510" width="520.3" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

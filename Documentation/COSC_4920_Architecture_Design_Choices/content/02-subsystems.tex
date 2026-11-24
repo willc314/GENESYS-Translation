@@ -1,0 +1,166 @@
+% !TeX root = ../main.tex
+\chapter{Subsystems}
+\label{ch:subsystems}
+
+\section{Decomposition}
+
+\umlfigure{subsystems}{Subsystems grouped by the project that contains them.
+Dashed boundaries are projects; solid boxes are subsystems}{fig:subsystems}
+
+Figure~\ref{fig:subsystems} shows six subsystems distributed across three
+projects and the two external systems they talk to. The dashed boundaries are
+the projects of the solution; the solid boxes inside them are the subsystems;
+the grey boxes are systems we do not own.
+
+\begin{longtable}{L{0.18\textwidth}L{0.21\textwidth}L{0.30\textwidth}L{0.17\textwidth}}
+	\caption{Subsystems and their responsibilities}\label{tab:subsystems}\\
+	\toprule
+	\textbf{Subsystem} & \textbf{Project} & \textbf{Responsibility} & \textbf{Requirements} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Subsystem} & \textbf{Project} & \textbf{Responsibility} & \textbf{Requirements} \\
+	\midrule
+	\endhead
+
+	Repository Client & \code{Pentateuch.Genesys} & Authenticates against a
+	GENESYS repository, opens a named project, and reads the schema that
+	project actually defines. & \req{CM-1}, \req{CM-2} \\
+	\addlinespace
+	Model Mapper & \code{Pentateuch.Genesys} & Converts between GENESYS
+	entities and the abstract syntax, in both directions. Creates entities and
+	relationships only. & \req{SA-2}, \req{AS-2}, \req{CA-2}, \req{CM-5} \\
+	\addlinespace
+	Code Extractor & \code{Pentateuch.Translator} & Opens a solution, resolves
+	symbols through the semantic model, builds a control flow graph per method
+	reached. & \req{CA-1} \\
+	\addlinespace
+	Code Generator & \code{Pentateuch.Translator} & Emits C\# or Visual Basic
+	implementing the control flow of an activity diagram, leaving method
+	bodies as prototypes. & \req{AC-1} to \req{AC-4} \\
+	\addlinespace
+	Abstraction & \code{Pentateuch.Translator} & Discards constructs below the
+	level a systems engineer reads. The one subsystem that exists for a
+	non-functional requirement rather than a functional one. & \req{NFR-8} \\
+	\addlinespace
+	Abstract Syntax & \code{Pentateuch.Absyn} & The form both sides exchange.
+	Belongs to neither the language nor the model. & The pivot of
+	Section~\ref{sec:canonical} \\
+	\bottomrule
+\end{longtable}
+
+\section{Why the Boundaries Fall Where They Do}
+
+The project boundaries were not chosen for tidiness. Two constraints fixed them.
+
+\textbf{C-1} is the first. The GENESYS Client API assemblies target .NET
+Framework 4.8, and code calling them must target the same framework. The Roslyn
+work wants a current runtime. No single project can do both, so the split across
+runtimes is imposed rather than preferred, and the subsystems that touch each
+vendor API are grouped by which runtime that API demands.
+
+\textbf{C-3} is the second. GENESYS loads its own copy of Roslyn in order to
+compile the scripts it supports, and two versions of the same assembly cannot
+coexist in one process. The analysis therefore cannot run inside GENESYS even if
+the framework problem were solved. Taken together with \req{NFR-2}, a failure in
+the tool must not terminate GENESYS, the two processes are settled.
+
+\code{Pentateuch.Absyn} targets .NET Standard 2.0 because that is the only
+target both of the other runtimes can reference. Its existence is a consequence
+of the same constraint that created the split.
+
+The arrangement has a second benefit. Two of the three projects reference no
+vendor assembly, so they build and run on a
+machine with no GENESYS installation and no licence activation. That is
+\req{NFR-6}, verified by test V-12, and it is what keeps the limited number of
+licence activations from becoming a limit on how many people can work.
+
+\section{The Canonical Form}
+\label{sec:canonical}
+
+\umlfigure{canonical-model}{The abstract syntax as the canonical form between
+the two outer representations}{fig:canonical}
+
+Figure~\ref{fig:canonical} shows why the middle of the pipeline is a
+representation in its own right rather than an incidental data structure.
+
+A translation is a chain of three representations, each of which knows how to
+translate to the next and exposes a \code{translate()} operation. The source
+representation is Roslyn's view of the program; the model representation is the
+Client API's view of the repository; the abstract syntax sits between them and
+belongs to neither.
+
+This reduces how many translators are needed. If each format translated
+directly to every other, supporting $N$ formats would need on the order of
+$2N$ translators. Routing
+everything through one canonical form makes it $N$. Concretely, Visual Basic
+becomes a second translation into the same abstract syntax rather than a change
+to anything downstream, which is the reason \req{AC-1} can name two target
+languages without doubling the work. Excluding C from scope keeps both supported
+languages on one compiler platform, so the two spokes share a front end as well.
+
+\section{How the Subsystems Work Together}
+
+A translation is one pass along the pipeline, with the subsystems entering in a
+fixed order. The order is fixed by the design rather than by convention, which
+is what makes \req{NFR-4}, identical output from identical input, achievable at
+all.
+
+\subsection{Code to Activity Diagram}
+
+The Code Extractor opens the solution, resolves its project references and symbols through the compiler's semantic model (so each call is matched to the method it actually invokes, not just a name), and builds a control flow graph for every method it reaches. It works from a queue seeded with the engineer's chosen entry point and limited to their designated depth, which is
+\req{CA-3}.
+
+The Abstraction filter receives the completed graph and applies the significance
+rules to it. It runs after the walk rather than during it, because filtering
+during traversal would make the discarded material unavailable for the counts
+reported at the end.
+
+The Model Mapper receives abstract syntax and produces the entities and
+relationships that correspond to what survived. It asks the Repository Client
+for the schema first, so that it addresses classes by what the schema reports
+rather than by assumed names, which is \req{CM-2}.
+
+The Repository Client holds the proposed change set and writes nothing until the
+user accepts it. On acceptance it applies the whole set; on cancellation it
+applies none of it. That is \req{CM-3} and \req{NFR-3}.
+
+\subsection{Activity Diagram to Code}
+
+The same subsystems in the reverse order. The Repository Client reads, the Model
+Mapper produces abstract syntax from entities, the Abstraction filter applies
+the same significance rules, and the Code Generator emits source with method
+bodies left as prototypes for an engineer to complete. The review step is the
+same one, applied to the source repository instead of the model.
+
+\subsection{What Crosses Each Boundary}
+
+\begin{longtable}{L{0.38\textwidth}L{0.54\textwidth}}
+	\caption{Interfaces between subsystems}\label{tab:interfaces}\\
+	\toprule
+	\textbf{Boundary} & \textbf{What crosses it} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Boundary} & \textbf{What crosses it} \\
+	\midrule
+	\endhead
+
+	Source Repository to Code Extractor & Source files on disk, opened as a
+	solution so that references resolve. \\
+	\addlinespace
+	Code Extractor to Abstraction & Syntax trees and control flow graphs,
+	still carrying every construct the source contained. \\
+	\addlinespace
+	Abstraction to Model Mapper & Abstract syntax, carrying only what survived
+	the significance rules. This is the process boundary, and the open
+	question of risk \textbf{R-2}. \\
+	\addlinespace
+	Model Mapper to Repository Client & Entities and relationships, named
+	according to the schema read at run time. \\
+	\addlinespace
+	Repository Client to GENESYS & Client API calls, under a licence, against
+	one open project. \\
+	\bottomrule
+\end{longtable}
+

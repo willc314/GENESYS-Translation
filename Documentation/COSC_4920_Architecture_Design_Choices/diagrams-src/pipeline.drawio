@@ -1,0 +1,58 @@
+<mxfile host="app.diagrams.net" version="24.0.0">
+  <diagram name="The Translation Pipeline (Pipe and Filter)" id="pipeline">
+    <mxGraphModel dx="1100" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="frame" value="The Translation Pipeline (Pipe and Filter)" style="shape=umlFrame;whiteSpace=wrap;html=1;width=310;height=30;verticalAlign=middle;align=center;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="810" height="520" as="geometry" />
+        </mxCell>
+
+        <mxCell id="src" value="Source Repository&#xa;C# or Visual Basic" style="whiteSpace=wrap;html=1;fillColor=#f2f2f2;" vertex="1" parent="1">
+          <mxGeometry x="60" y="110" width="180" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="ce" value="Code Extractor&#xa;CA-1: build the CFG" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="105" width="180" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="ab" value="Abstraction&#xa;CA-2, NFR-8: discard noise" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="105" width="180" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="mm" value="Model Mapper&#xa;CA-2: entities and relationships" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="270" width="180" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="gen" value="GENESYS Repository&#xa;entities, not pictures" style="whiteSpace=wrap;html=1;fillColor=#f2f2f2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="275" width="180" height="58" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="src" target="ce" value="source files">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ce" target="ab" value="syntax trees">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ab" target="mm" value="Absyn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="mm" target="gen" value="entities">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="Each filter performs one transformation and passes the result on. The pipes are labelled with" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="127.05" y="386" width="595.9" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="the format carried, because an agreed transfer format is the named cost of this pattern." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="142.8" y="405" width="564.4" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" value="AC-n runs the same pipe in the opposite direction, reusing every filter." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="193.2" y="439" width="463.6" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" value="SA-n and AS-n are shorter pipes whose two ends are both the GENESYS repository." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="171.15" y="457" width="507.7" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" value="Adding Visual Basic adds one filter at the left-hand end and changes nothing downstream." style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontColor=#333333;fillColor=none;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="142.8" y="491" width="564.4" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

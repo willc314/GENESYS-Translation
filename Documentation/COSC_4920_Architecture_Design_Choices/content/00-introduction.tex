@@ -1,0 +1,90 @@
+% !TeX root = ../main.tex
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Purpose}
+
+This document records the architectural choices behind the GENESYS Translation
+Tool and the reasoning for each. It answers four questions: which architectural
+patterns the system uses, how its subsystems fit together, whether those choices
+follow from the original requirements, and which object-oriented design patterns
+the implementation will leverage.
+
+The System Requirements Specification
+states what the tool must do and assigns every requirement an identifier. The
+UML Design Document models the structure and behaviour. The Tool Selection
+Document records which external tools and interfaces the project builds on and
+why the alternatives were set aside. This document explains why the structure
+takes the shape it does. Requirement identifiers are those of
+the requirements specification and are used here unchanged, so that a claim made
+about the architecture can be checked against the requirement that motivated it.
+
+\section{The System in Brief}
+
+The GENESYS Translation Tool moves behavioural design between a GENESYS
+repository and a source code repository, in both directions, and leaves the two
+reconcilable afterwards. The activity diagram is the pivot, and translation is
+specified as two reversible pairs that meet there: activity diagram to and from
+state diagram, both ends inside GENESYS, and activity diagram to and from code.
+
+The governing criterion, taken from the client, is that an engineer should be
+able to read a generated diagram and understand the system's behaviour without
+reading its code. It is stated as \req{NFR-8}. Where it conflicts with
+structural fidelity to the source, readability takes priority. That criterion
+shapes the architecture directly, because it is the reason an Abstraction
+subsystem exists at all.
+
+\section{Document Conventions}
+
+Every figure carries a number, a caption and a label, is referenced from the
+surrounding text, and is followed by a table or by prose explaining its
+elements. Named architectural patterns are set in small capitals, as
+\pattern{Pipe and Filter}, so that a pattern claim is distinguishable from
+ordinary use of the same words. The sources these names are taken from are
+listed in Chapter~\ref{ch:references}.
+
+\begin{itemize}[nosep]
+	\item \req{CM-n} --- common to all translations.
+	\item \req{SA-n} --- state diagram to activity diagram.
+	\item \req{AS-n} --- activity diagram to state diagram.
+	\item \req{AC-n} --- activity diagram to code.
+	\item \req{CA-n} --- code to activity diagram.
+	\item \req{FS-n} --- stretch functional requirements.
+	\item \req{NFR-n} --- non-functional, minimum viable product.
+\end{itemize}
+
+Constraints are \textbf{C-n} and assumptions \textbf{A-n}. A constraint is
+something the environment imposes; a design decision taken freely is never
+recorded as one. The distinction matters here, because several of the choices
+below were not choices at all.
+
+\section{How This Document Is Organised}
+
+\begin{longtable}{L{0.30\textwidth}L{0.62\textwidth}}
+	\caption{Chapters against the questions they answer}\label{tab:organisation}\\
+	\toprule
+	\textbf{Chapter} & \textbf{Question answered} \\
+	\midrule
+	\endfirsthead
+	\toprule
+	\textbf{Chapter} & \textbf{Question answered} \\
+	\midrule
+	\endhead
+
+	Chapter~\ref{ch:patterns}, Architectural Patterns & Which architectural
+	patterns are used, which were considered and set aside, and why. Every
+	candidate is given a verdict, not only the one adopted. \\
+	\addlinespace
+	Chapter~\ref{ch:subsystems}, Subsystems & What the subsystems are, which
+	process each belongs to, and how they work together to produce a
+	translation. \\
+	\addlinespace
+	Chapter~\ref{ch:design-patterns}, Design Patterns & Which object-oriented
+	design patterns the implementation leverages, and what each one is there
+	to solve. \\
+	\addlinespace
+	Chapter~\ref{ch:requirements}, Requirements Behind the Architecture &
+	Whether these choices follow from the original requirements, traced
+	requirement by requirement. \\
+	\bottomrule
+\end{longtable}
